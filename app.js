@@ -1527,7 +1527,7 @@ function renderAdminQueue() {
     
     queueHTML += `
       <div class="mod-card">
-        <div class="mod-img-container">
+        <div class="mod-img-container" onclick="openLightbox('${photo.id}')" title="Click to view details and comments">
           <img src="${photo.url}" alt="Pending image" class="mod-img">
         </div>
         <div class="mod-details">
