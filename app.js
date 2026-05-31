@@ -3,52 +3,12 @@
 // --- SEED DATA ---
 const DEFAULT_PHOTOS = [
   {
-    id: 'seed-oblation',
-    url: 'assets/oblation.png',
-    caption: 'Alumni gathered around the iconic UP Oblation statue during the Lantern Parade. A celebration of honor and excellence, showcasing the batch stoles (Sablay) representing years of service and learning.',
-    category: 'celebrations',
-    likes: 142,
-    views: 312,
-    approved: true,
-    uploadedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() // 10 days ago
-  },
-  {
-    id: 'seed-reunion',
-    url: 'assets/reunion.png',
-    caption: 'Reunion banquet under the grand Acacia canopy. Smiling faces of alumni catching up after 20 years, exchanging stories of how their university education shaped their career paths.',
-    category: 'reunions',
-    likes: 98,
-    views: 245,
-    approved: true,
-    uploadedAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString() // 9 days ago
-  },
-  {
-    id: 'seed-sunflowers',
-    url: 'assets/sunflowers.png',
-    caption: 'The famous bright sunflowers blooming along University Avenue, welcoming graduating students and returning alumni. A timeless symbol of hope, growth, and the start of a new journey.',
-    category: 'campus',
-    likes: 189,
-    views: 403,
-    approved: true,
-    uploadedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString() // 8 days ago
-  },
-  {
-    id: 'seed-celebration',
-    url: 'assets/celebration.png',
-    caption: 'Caps off to the future! UP alumni celebrating the culmination of their academic milestones in front of Quezon Hall. May the fire of service continue to burn in the hearts of the Iskolar ng Bayan.',
-    category: 'celebrations',
-    likes: 215,
-    views: 520,
-    approved: true,
-    uploadedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days ago
-  },
-  {
     id: 'seed-batch89-beach1',
     url: 'assets/Batch 89/att.gqoFc1LH54ig3pBWizTQPrhePsl_zQ20FWctxDwL1LU.jpg',
     caption: 'A memorable beach getaway with the UP Batch 1989 sisters. Sun, sand, and smiles capturing the lifelong friendships forged during our university days.',
     category: 'batch 89',
-    likes: 112,
-    views: 185,
+    likes: 0,
+    views: 0,
     approved: true,
     uploadedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
   },
@@ -57,8 +17,8 @@ const DEFAULT_PHOTOS = [
     url: 'assets/Batch 89/att.Ja1e36PxpKWazMT3Y4QpwwygsZ7bFB0ccw_CfZOpdvY.jpg',
     caption: 'UP Batch 1989 outing: A full house of friends sharing laughter and good times by the beach, keeping the spirit of camaraderie alive.',
     category: 'batch 89',
-    likes: 130,
-    views: 210,
+    likes: 0,
+    views: 0,
     approved: true,
     uploadedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString()
   },
@@ -67,8 +27,8 @@ const DEFAULT_PHOTOS = [
     url: 'assets/Batch 89/att.JX93g8F2JqUVRnArrk6BWy6C5netRkrYBpHbC8zt0KU.jpg',
     caption: "UP Batch '89: Posing with youthful energy and joy during our memorable summer trip. A snapshot of true friendship.",
     category: 'batch 89',
-    likes: 95,
-    views: 160,
+    likes: 0,
+    views: 0,
     approved: true,
     uploadedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
   },
@@ -77,8 +37,8 @@ const DEFAULT_PHOTOS = [
     url: 'assets/Batch 89/att.ugZE2XlbKni0XGlWW74AXeK0TkHepZfC4A5ylwzfIOY.jpg',
     caption: "The UP Batch '89 baseball/softball team posing in their green and white uniforms. Sportsmanship, team spirit, and pride representing the green and gold.",
     category: 'batch 89',
-    likes: 154,
-    views: 240,
+    likes: 0,
+    views: 0,
     approved: true,
     uploadedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
   },
@@ -87,8 +47,8 @@ const DEFAULT_PHOTOS = [
     url: 'assets/Batch 89/att.yKt1NA99pLa_ss6AdCjbL8nccu3jjSizKtI6o3RUU0w.jpg',
     caption: "A beautiful sisterhood. UP Batch '89 alumni lining up and showing the strong bond that links them through decades of friendship.",
     category: 'batch 89',
-    likes: 121,
-    views: 198,
+    likes: 0,
+    views: 0,
     approved: true,
     uploadedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
   }
@@ -265,18 +225,29 @@ function loadDatabase() {
           db.collection('photos').doc(photo.id).set(photo);
         });
       } else {
-        // Dynamic seeding for newly added seed photos
-        let missingSeeded = false;
+        // Dynamic seeding for newly added seed photos and removal of deprecated ones
+        const oldSeedIds = ['seed-oblation', 'seed-reunion', 'seed-sunflowers', 'seed-celebration'];
+        let needsWrite = false;
+        
+        oldSeedIds.forEach(id => {
+          const exists = fbPhotos.some(p => p.id === id);
+          if (exists) {
+            console.log(`Cleaning old seed from Firestore: ${id}`);
+            db.collection('photos').doc(id).delete().catch(err => console.error(err));
+            needsWrite = true;
+          }
+        });
+        
         DEFAULT_PHOTOS.forEach(photo => {
           const exists = fbPhotos.some(p => p.id === photo.id);
           if (!exists) {
             console.log(`Seeding missing photo to Firestore: ${photo.id}`);
             db.collection('photos').doc(photo.id).set(photo);
-            missingSeeded = true;
+            needsWrite = true;
           }
         });
         
-        if (!missingSeeded) {
+        if (!needsWrite) {
           state.photos = fbPhotos;
           
           // Reactive details modal updates if open
@@ -302,8 +273,13 @@ function loadDatabase() {
     if (localData) {
       try {
         state.photos = JSON.parse(localData);
+        // Clean up old seeds locally
+        const oldSeedIds = ['seed-oblation', 'seed-reunion', 'seed-sunflowers', 'seed-celebration'];
+        const initialLength = state.photos.length;
+        state.photos = state.photos.filter(p => !oldSeedIds.includes(p.id));
+        let modified = state.photos.length !== initialLength;
+        
         // Seed missing default photos locally
-        let modified = false;
         DEFAULT_PHOTOS.forEach(photo => {
           const exists = state.photos.some(p => p.id === photo.id);
           if (!exists) {
@@ -467,7 +443,7 @@ function showAdminView() {
 
 // --- DYNAMIC CATEGORY AND FILTER RENDERERS ---
 function getActiveCategories() {
-  const base = ['celebrations', 'reunions', 'campus'];
+  const base = [];
   // Extract all unique categories from approved photos (lowercase and sanitized)
   const approvedCats = state.photos
     .filter(p => p.approved)
