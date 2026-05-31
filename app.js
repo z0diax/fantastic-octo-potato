@@ -239,11 +239,19 @@ function loadDatabase() {
         });
         
         DEFAULT_PHOTOS.forEach(photo => {
-          const exists = fbPhotos.some(p => p.id === photo.id);
-          if (!exists) {
+          const fbPhoto = fbPhotos.find(p => p.id === photo.id);
+          if (!fbPhoto) {
             console.log(`Seeding missing photo to Firestore: ${photo.id}`);
             db.collection('photos').doc(photo.id).set(photo);
             needsWrite = true;
+          } else if (fbPhoto.likes !== 0 || fbPhoto.views !== 0) {
+            // Force reset likes and views to 0 in Firestore if they contain old mock stats
+            console.log(`Resetting likes/views for seed photo: ${photo.id}`);
+            db.collection('photos').doc(photo.id).update({
+              likes: 0,
+              views: 0
+            });
+            // We do not set needsWrite = true here since Firestore update will trigger onSnapshot again.
           }
         });
         
@@ -279,11 +287,15 @@ function loadDatabase() {
         state.photos = state.photos.filter(p => !oldSeedIds.includes(p.id));
         let modified = state.photos.length !== initialLength;
         
-        // Seed missing default photos locally
+        // Seed missing default photos locally & reset likes/views
         DEFAULT_PHOTOS.forEach(photo => {
-          const exists = state.photos.some(p => p.id === photo.id);
-          if (!exists) {
+          const localPhoto = state.photos.find(p => p.id === photo.id);
+          if (!localPhoto) {
             state.photos.push(photo);
+            modified = true;
+          } else if (localPhoto.likes !== 0 || localPhoto.views !== 0) {
+            localPhoto.likes = 0;
+            localPhoto.views = 0;
             modified = true;
           }
         });
