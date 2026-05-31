@@ -1,0 +1,1150 @@
+/* UP - Katitirok Gallery Application Logic */
+
+// --- SEED DATA ---
+const DEFAULT_PHOTOS = [
+  {
+    id: 'seed-oblation',
+    url: 'assets/oblation.png',
+    caption: 'Alumni gathered around the iconic UP Oblation statue during the Lantern Parade. A celebration of honor and excellence, showcasing the batch stoles (Sablay) representing years of service and learning.',
+    category: 'celebrations',
+    likes: 142,
+    views: 312,
+    approved: true,
+    uploadedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() // 5 days ago
+  },
+  {
+    id: 'seed-reunion',
+    url: 'assets/reunion.png',
+    caption: 'Reunion banquet under the grand Acacia canopy. Smiling faces of alumni catching up after 20 years, exchanging stories of how their university education shaped their career paths.',
+    category: 'reunions',
+    likes: 98,
+    views: 245,
+    approved: true,
+    uploadedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString() // 4 days ago
+  },
+  {
+    id: 'seed-sunflowers',
+    url: 'assets/sunflowers.png',
+    caption: 'The famous bright sunflowers blooming along University Avenue, welcoming graduating students and returning alumni. A timeless symbol of hope, growth, and the start of a new journey.',
+    category: 'campus',
+    likes: 189,
+    views: 403,
+    approved: true,
+    uploadedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() // 3 days ago
+  },
+  {
+    id: 'seed-celebration',
+    url: 'assets/celebration.png',
+    caption: 'Caps off to the future! UP alumni celebrating the culmination of their academic milestones in front of Quezon Hall. May the fire of service continue to burn in the hearts of the Iskolar ng Bayan.',
+    category: 'celebrations',
+    likes: 215,
+    views: 520,
+    approved: true,
+    uploadedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() // 2 days ago
+  }
+];
+
+// --- APP STATE ---
+let state = {
+  photos: [],
+  currentCarouselIndex: 0,
+  carouselTimer: null,
+  activeFilter: 'all',
+  adminTab: 'pending', // 'pending' or 'approved'
+  isLoggedIn: false,
+  selectedPhoto: null
+};
+
+// --- DOM ELEMENTS ---
+const elements = {
+  // Navigation
+  logoBtn: document.getElementById('nav-logo'),
+  homeLink: document.getElementById('nav-home-link'),
+  openUploadBtn: document.getElementById('open-upload-btn'),
+  
+  // Views
+  publicView: document.getElementById('public-view-container'),
+  adminView: document.getElementById('admin-view-container'),
+  
+  // Carousel
+  carouselTrack: document.getElementById('carousel-track'),
+  carouselPrev: document.getElementById('carousel-prev'),
+  carouselNext: document.getElementById('carousel-next'),
+  carouselDots: document.getElementById('carousel-dots'),
+  
+  // Gallery
+  galleryGrid: document.getElementById('gallery-grid'),
+  filtersContainer: document.getElementById('gallery-filters-container'),
+  
+  // Lightbox Modal
+  lightboxModal: document.getElementById('lightbox-modal'),
+  closeLightboxBtn: document.getElementById('close-lightbox-btn'),
+  lightboxImg: document.getElementById('lightbox-img'),
+  lightboxCategory: document.getElementById('lightbox-category'),
+  lightboxDate: document.getElementById('lightbox-date'),
+  lightboxCaption: document.getElementById('lightbox-caption'),
+  lightboxViews: document.getElementById('lightbox-views-count'),
+  lightboxLikes: document.getElementById('lightbox-likes-count'),
+  likeBtn: document.getElementById('like-btn'),
+  
+  // Upload Modal
+  uploadModal: document.getElementById('upload-modal'),
+  closeUploadBtn: document.getElementById('close-upload-btn'),
+  cancelUploadBtn: document.getElementById('cancel-upload-btn'),
+  uploadForm: document.getElementById('upload-form'),
+  fileDropzone: document.getElementById('file-dropzone'),
+  fileInput: document.getElementById('upload-file-input'),
+  previewImg: document.getElementById('dropzone-preview-img'),
+  uploadCaption: document.getElementById('upload-caption'),
+  uploadCategory: document.getElementById('upload-category'),
+  customCategoryGroup: document.getElementById('custom-category-group'),
+  customCategoryInput: document.getElementById('upload-custom-category'),
+  
+  // Admin Login
+  adminLoginCard: document.getElementById('admin-login-card'),
+  adminLoginForm: document.getElementById('admin-login-form'),
+  adminUsername: document.getElementById('admin-username'),
+  adminPassword: document.getElementById('admin-password'),
+  
+  // Admin Dashboard
+  adminDashboard: document.getElementById('admin-dashboard-container'),
+  adminLogoutBtn: document.getElementById('admin-logout-btn'),
+  statTotalPhotos: document.getElementById('stat-total-photos'),
+  statTotalLikes: document.getElementById('stat-total-likes'),
+  statTotalViews: document.getElementById('stat-total-views'),
+  tabPendingBtn: document.getElementById('tab-pending-btn'),
+  tabApprovedBtn: document.getElementById('tab-approved-btn'),
+  pendingCountBadge: document.getElementById('pending-count'),
+  adminQueueList: document.getElementById('admin-queue-list'),
+  
+  // Logo Nodes
+  navLogoShield: document.getElementById('nav-logo-shield'),
+  navLogoTitle: document.getElementById('nav-logo-title'),
+  navLogoSubtitle: document.getElementById('nav-logo-subtitle'),
+  footerLogoShield: document.getElementById('footer-logo-shield'),
+  footerLogoTitle: document.getElementById('footer-logo-title'),
+  footerLogoSubtitle: document.getElementById('footer-logo-subtitle'),
+
+  // Branding Customization elements
+  tabSettingsBtn: document.getElementById('tab-settings-btn'),
+  adminSettingsPanel: document.getElementById('admin-settings-panel'),
+  brandingForm: document.getElementById('branding-settings-form'),
+  settingsShieldInput: document.getElementById('settings-shield-text'),
+  settingsTitleInput: document.getElementById('settings-title-text'),
+  settingsSubtitleInput: document.getElementById('settings-subtitle-text'),
+  settingsLogoImageInput: document.getElementById('settings-logo-image'),
+  settingsLogoPreview: document.getElementById('settings-logo-preview'),
+  settingsClearLogoImageBtn: document.getElementById('clear-logo-image-btn'),
+
+  // Notifications
+  toastContainer: document.getElementById('toast-container'),
+  
+  // Footer Links
+  footerHome: document.getElementById('footer-home-btn'),
+  footerUpload: document.getElementById('footer-upload-btn')
+};
+
+// --- INITIALIZATION ---
+function initApp() {
+  loadDatabase();
+  applyBranding();
+  initEventListeners();
+  renderCarousel();
+  renderFilters();
+  renderGallery();
+  startCarouselAutoPlay();
+  updatePendingCountBadge();
+  
+  // Check session login state
+  if (sessionStorage.getItem('admin_logged') === 'true') {
+    state.isLoggedIn = true;
+    showAdminDashboard();
+  }
+}
+
+// --- DATABASE HANDLERS (LOCALSTORAGE) ---
+function loadDatabase() {
+  const localData = localStorage.getItem('up_katitirok_photos');
+  if (localData) {
+    try {
+      state.photos = JSON.parse(localData);
+    } catch (e) {
+      console.error("Failed to parse local storage photos. Seeding instead.", e);
+      state.photos = [...DEFAULT_PHOTOS];
+      saveDatabase();
+    }
+  } else {
+    state.photos = [...DEFAULT_PHOTOS];
+    saveDatabase();
+  }
+}
+
+function saveDatabase() {
+  localStorage.setItem('up_katitirok_photos', JSON.stringify(state.photos));
+  updatePendingCountBadge();
+}
+
+// --- EVENT LISTENERS ---
+function initEventListeners() {
+  // Navigation secret triple-click to open Admin View
+  let logoClicks = 0;
+  let logoClickTimer = null;
+  
+  elements.logoBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    logoClicks++;
+    
+    clearTimeout(logoClickTimer);
+    logoClickTimer = setTimeout(() => {
+      logoClicks = 0;
+    }, 1000); // 1-second timeout for triple click
+    
+    if (logoClicks === 3) {
+      logoClicks = 0;
+      clearTimeout(logoClickTimer);
+      showAdminView();
+      showToast("Accessing secret Admin Portal...", "info");
+    } else {
+      showHomeView();
+    }
+  });
+
+  if (elements.homeLink) {
+    elements.homeLink.addEventListener('click', (e) => { e.preventDefault(); showHomeView(); });
+  }
+  elements.footerHome.addEventListener('click', (e) => { e.preventDefault(); showHomeView(); });
+  
+  // Modals Toggles
+  elements.openUploadBtn.addEventListener('click', () => openModal(elements.uploadModal));
+  elements.footerUpload.addEventListener('click', (e) => { e.preventDefault(); openModal(elements.uploadModal); });
+  
+  elements.closeUploadBtn.addEventListener('click', () => closeModal(elements.uploadModal));
+  elements.cancelUploadBtn.addEventListener('click', () => closeModal(elements.uploadModal));
+  elements.closeLightboxBtn.addEventListener('click', () => closeModal(elements.lightboxModal));
+  
+  // Close modals clicking outside
+  window.addEventListener('click', (e) => {
+    if (e.target === elements.uploadModal) closeModal(elements.uploadModal);
+    if (e.target === elements.lightboxModal) closeModal(elements.lightboxModal);
+  });
+  
+  // Carousel Buttons
+  elements.carouselPrev.addEventListener('click', () => moveCarousel(-1));
+  elements.carouselNext.addEventListener('click', () => moveCarousel(1));
+  
+  // Gallery Filters
+  elements.filtersContainer.addEventListener('click', (e) => {
+    if (e.target.classList.contains('filter-btn')) {
+      document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+      e.target.classList.add('active');
+      state.activeFilter = e.target.getAttribute('data-filter');
+      renderGallery();
+    }
+  });
+  
+  // Lightbox Interactions
+  elements.likeBtn.addEventListener('click', handleLikeToggle);
+  
+  // Image Upload Logic (Drag and Drop / Select)
+  elements.fileDropzone.addEventListener('click', () => elements.fileInput.click());
+  elements.fileInput.addEventListener('change', handleFileSelect);
+  
+  // Custom Category Dropdown Toggler
+  elements.uploadCategory.addEventListener('change', () => {
+    if (elements.uploadCategory.value === 'custom-new') {
+      elements.customCategoryGroup.style.display = 'flex';
+      elements.customCategoryInput.required = true;
+      elements.customCategoryInput.focus();
+    } else {
+      elements.customCategoryGroup.style.display = 'none';
+      elements.customCategoryInput.required = false;
+      elements.customCategoryInput.value = '';
+    }
+  });
+  
+  elements.fileDropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    elements.fileDropzone.classList.add('dragover');
+  });
+  elements.fileDropzone.addEventListener('dragleave', () => {
+    elements.fileDropzone.classList.remove('dragover');
+  });
+  elements.fileDropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    elements.fileDropzone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) {
+      elements.fileInput.files = e.dataTransfer.files;
+      handleFileSelect();
+    }
+  });
+  
+  elements.uploadForm.addEventListener('submit', handleUploadSubmit);
+  
+  // Admin Interactions
+  elements.adminLoginForm.addEventListener('submit', handleAdminLogin);
+  elements.adminLogoutBtn.addEventListener('click', handleAdminLogout);
+  
+  elements.tabPendingBtn.addEventListener('click', () => switchAdminTab('pending'));
+  elements.tabApprovedBtn.addEventListener('click', () => switchAdminTab('approved'));
+  elements.tabSettingsBtn.addEventListener('click', () => switchAdminTab('settings'));
+  elements.brandingForm.addEventListener('submit', handleBrandingSubmit);
+  elements.settingsLogoImageInput.addEventListener('change', handleLogoFileSelect);
+  elements.settingsClearLogoImageBtn.addEventListener('click', handleClearLogoImage);
+}
+
+// --- NAVIGATION VIEWS ---
+function showHomeView() {
+  if (elements.homeLink) elements.homeLink.classList.add('active');
+  elements.publicView.style.display = 'block';
+  elements.adminView.classList.remove('active');
+  
+  // Restart Carousel AutoPlay
+  startCarouselAutoPlay();
+}
+
+function showAdminView() {
+  if (elements.homeLink) elements.homeLink.classList.remove('active');
+  elements.publicView.style.display = 'none';
+  elements.adminView.classList.add('active');
+  
+  // Stop Carousel AutoPlay
+  clearInterval(state.carouselTimer);
+  
+  if (state.isLoggedIn) {
+    showAdminDashboard();
+  } else {
+    showAdminLogin();
+  }
+}
+
+// --- DYNAMIC CATEGORY AND FILTER RENDERERS ---
+function getActiveCategories() {
+  const base = ['celebrations', 'reunions', 'campus'];
+  // Extract all unique categories from approved photos (lowercase and sanitized)
+  const approvedCats = state.photos
+    .filter(p => p.approved)
+    .map(p => p.category.toLowerCase().trim());
+  
+  return Array.from(new Set([...base, ...approvedCats]));
+}
+
+function renderFilters() {
+  const categories = getActiveCategories();
+  let html = `<button class="filter-btn ${state.activeFilter === 'all' ? 'active' : ''}" data-filter="all">All Photos</button>`;
+  
+  categories.forEach(cat => {
+    // Capitalize category name for display
+    const label = cat.charAt(0).toUpperCase() + cat.slice(1);
+    html += `<button class="filter-btn ${state.activeFilter === cat ? 'active' : ''}" data-filter="${cat}">${label}</button>`;
+  });
+  
+  html += `<button class="filter-btn ${state.activeFilter === 'uploads' ? 'active' : ''}" data-filter="uploads">User Uploads</button>`;
+  elements.filtersContainer.innerHTML = html;
+}
+
+function renderUploadCategories() {
+  const categories = getActiveCategories();
+  let html = '';
+  
+  categories.forEach(cat => {
+    const label = cat.charAt(0).toUpperCase() + cat.slice(1);
+    html += `<option value="${cat}">${label}</option>`;
+  });
+  
+  html += `<option value="custom-new">Other (Create New)...</option>`;
+  elements.uploadCategory.innerHTML = html;
+  
+  // Hide custom input group by default
+  elements.customCategoryGroup.style.display = 'none';
+  elements.customCategoryInput.required = false;
+  elements.customCategoryInput.value = '';
+}
+
+// --- APP BRANDING SETTINGS ---
+let customLogoImageBase64 = null;
+
+function applyBranding() {
+  const branding = localStorage.getItem('up_katitirok_branding');
+  if (branding) {
+    try {
+      const data = JSON.parse(branding);
+      
+      // Handle custom logo image
+      if (data.logoImage && elements.navLogoShield && elements.footerLogoShield) {
+        const imgNav = `<img src="${data.logoImage}" alt="Logo" class="logo-shield-image">`;
+        const imgFooter = `<img src="${data.logoImage}" alt="Logo" class="logo-shield-image">`;
+        elements.navLogoShield.innerHTML = imgNav;
+        elements.footerLogoShield.innerHTML = imgFooter;
+      } else {
+        // Fallback to initials
+        if (data.shieldText && elements.navLogoShield && elements.footerLogoShield) {
+          elements.navLogoShield.textContent = data.shieldText;
+          elements.footerLogoShield.textContent = data.shieldText;
+        }
+      }
+      
+      if (data.titleText && elements.navLogoTitle && elements.footerLogoTitle) {
+        elements.navLogoTitle.textContent = data.titleText;
+        elements.footerLogoTitle.textContent = data.titleText;
+      }
+      if (data.subtitleText && elements.navLogoSubtitle && elements.footerLogoSubtitle) {
+        elements.navLogoSubtitle.textContent = data.subtitleText;
+        elements.footerLogoSubtitle.textContent = data.subtitleText;
+      }
+    } catch (e) {
+      console.error("Failed to parse branding settings.", e);
+    }
+  }
+}
+
+function loadBrandingInputs() {
+  const branding = localStorage.getItem('up_katitirok_branding');
+  let shieldVal = "UP";
+  let titleVal = "KATITIROK";
+  let subtitleVal = "Grand Alumni Gallery";
+  let logoImage = null;
+  
+  if (branding) {
+    try {
+      const data = JSON.parse(branding);
+      shieldVal = data.shieldText || "UP";
+      titleVal = data.titleText || "KATITIROK";
+      subtitleVal = data.subtitleText || "Grand Alumni Gallery";
+      logoImage = data.logoImage || null;
+    } catch (e) {}
+  }
+  
+  elements.settingsShieldInput.value = shieldVal;
+  elements.settingsTitleInput.value = titleVal;
+  elements.settingsSubtitleInput.value = subtitleVal;
+  
+  // Show image preview in settings if configured
+  if (logoImage && elements.settingsLogoPreview) {
+    elements.settingsLogoPreview.src = logoImage;
+    elements.settingsLogoPreview.style.display = 'block';
+  } else if (elements.settingsLogoPreview) {
+    elements.settingsLogoPreview.style.display = 'none';
+    elements.settingsLogoPreview.src = '';
+  }
+}
+
+function handleLogoFileSelect() {
+  const file = elements.settingsLogoImageInput.files[0];
+  if (!file) return;
+  
+  if (!file.type.match('image.*')) {
+    showToast("Invalid file format. Please select an image.", "error");
+    elements.settingsLogoImageInput.value = '';
+    return;
+  }
+  
+  if (file.size > 25 * 1024 * 1024) {
+    showToast("Logo size too large. Please select an image under 25MB.", "error");
+    elements.settingsLogoImageInput.value = '';
+    return;
+  }
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    // Resize logo to keep local storage lightweight (128px PNG)
+    const tempImg = new Image();
+    tempImg.onload = function() {
+      const canvas = document.createElement('canvas');
+      const size = 128;
+      canvas.width = size;
+      canvas.height = size;
+      
+      const ctx = canvas.getContext('2d');
+      // Fill canvas background with solid white
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, size, size);
+      ctx.drawImage(tempImg, 0, 0, size, size);
+      
+      customLogoImageBase64 = canvas.toDataURL('image/png');
+      
+      // Update preview element in settings tab
+      if (elements.settingsLogoPreview) {
+        elements.settingsLogoPreview.src = customLogoImageBase64;
+        elements.settingsLogoPreview.style.display = 'block';
+      }
+      
+      showToast("New custom logo loaded.", "success");
+    };
+    tempImg.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleClearLogoImage() {
+  const confirmClear = confirm("Are you sure you want to remove the custom logo image and revert to the shield initials?");
+  if (!confirmClear) return;
+  
+  const existingBranding = localStorage.getItem('up_katitirok_branding');
+  let brandingData = {
+    shieldText: "UP",
+    titleText: "KATITIROK",
+    subtitleText: "Grand Alumni Gallery"
+  };
+  
+  if (existingBranding) {
+    try {
+      brandingData = JSON.parse(existingBranding);
+    } catch (err) {}
+  }
+  
+  delete brandingData.logoImage;
+  localStorage.setItem('up_katitirok_branding', JSON.stringify(brandingData));
+  
+  // Reset input and preview
+  elements.settingsLogoImageInput.value = '';
+  customLogoImageBase64 = null;
+  if (elements.settingsLogoPreview) {
+    elements.settingsLogoPreview.style.display = 'none';
+    elements.settingsLogoPreview.src = '';
+  }
+  
+  applyBranding();
+  showToast("Custom logo image removed. Reverted to initials.", "info");
+}
+
+function handleBrandingSubmit(e) {
+  e.preventDefault();
+  
+  const shieldVal = elements.settingsShieldInput.value.trim();
+  const titleVal = elements.settingsTitleInput.value.trim();
+  const subtitleVal = elements.settingsSubtitleInput.value.trim();
+  
+  if (!shieldVal || !titleVal || !subtitleVal) {
+    showToast("All fields are required.", "error");
+    return;
+  }
+  
+  const existingBranding = localStorage.getItem('up_katitirok_branding');
+  let currentLogoImage = null;
+  if (existingBranding) {
+    try {
+      const parsed = JSON.parse(existingBranding);
+      currentLogoImage = parsed.logoImage;
+    } catch (err) {}
+  }
+  
+  if (customLogoImageBase64) {
+    currentLogoImage = customLogoImageBase64;
+  }
+  
+  const brandingData = {
+    shieldText: shieldVal,
+    titleText: titleVal,
+    subtitleText: subtitleVal,
+    logoImage: currentLogoImage
+  };
+  
+  localStorage.setItem('up_katitirok_branding', JSON.stringify(brandingData));
+  applyBranding();
+  
+  showToast("Branding settings saved successfully! ✨", "success");
+  
+  elements.settingsLogoImageInput.value = '';
+  customLogoImageBase64 = null;
+  
+  switchAdminTab('approved');
+}
+
+// --- MODAL UTILITIES ---
+let base64ImageString = null; // Store base64 data for upload
+
+function openModal(modal) {
+  modal.classList.add('active');
+  document.body.style.overflow = 'hidden'; // Stop scrolling background
+  if (modal === elements.uploadModal) {
+    renderUploadCategories();
+  }
+}
+
+function closeModal(modal) {
+  modal.classList.remove('active');
+  document.body.style.overflow = '';
+  
+  // Clear forms if it is the upload modal
+  if (modal === elements.uploadModal) {
+    elements.uploadForm.reset();
+    elements.previewImg.style.display = 'none';
+    elements.previewImg.src = '';
+    elements.fileDropzone.querySelector('.dropzone-icon').style.display = 'block';
+    elements.fileDropzone.querySelectorAll('.dropzone-text').forEach(t => t.style.display = 'block');
+    elements.customCategoryGroup.style.display = 'none';
+    elements.customCategoryInput.value = '';
+    elements.customCategoryInput.required = false;
+    base64ImageString = null;
+  }
+}
+
+// --- TOAST NOTIFICATIONS ---
+function showToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  
+  let icon = 'fa-circle-info';
+  if (type === 'success') icon = 'fa-circle-check';
+  if (type === 'error') icon = 'fa-triangle-exclamation';
+  
+  toast.innerHTML = `
+    <i class="fa-solid ${icon}"></i>
+    <span>${message}</span>
+  `;
+  
+  elements.toastContainer.appendChild(toast);
+  
+  // Remove toast after animation
+  setTimeout(() => {
+    toast.style.transform = 'translateY(20px)';
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
+}
+
+// --- CAROUSEL DISPLAY CODE ---
+function renderCarousel() {
+  const approved = state.photos.filter(p => p.approved);
+  if (approved.length === 0) {
+    elements.carouselTrack.innerHTML = `<div class="empty-queue-msg" style="padding-top: 15rem;"><i class="fa-regular fa-image"></i>No carousel memories available.</div>`;
+    elements.carouselDots.innerHTML = '';
+    return;
+  }
+
+  // Display top 4 photos in carousel
+  const carouselPhotos = approved.slice(-4).reverse();
+  
+  let trackHTML = '';
+  let dotsHTML = '';
+  
+  carouselPhotos.forEach((photo, index) => {
+    const isActive = index === 0 ? 'active' : '';
+    const dateObj = new Date(photo.uploadedAt);
+    const dateStr = dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    
+    trackHTML += `
+      <div class="carousel-slide ${isActive}" data-index="${index}">
+        <img src="${photo.url}" alt="Carousel Photo ${index + 1}" class="carousel-image">
+        <div class="carousel-overlay"></div>
+        <div class="carousel-content">
+          <span class="carousel-badge">${photo.category}</span>
+          <h1 class="carousel-title">UP Memories</h1>
+          <p class="carousel-caption">${photo.caption}</p>
+          <button class="btn btn-primary" onclick="openLightbox('${photo.id}')">
+            <i class="fa-solid fa-expand"></i> View Details
+          </button>
+        </div>
+      </div>
+    `;
+    
+    dotsHTML += `
+      <button class="carousel-dot ${isActive}" data-index="${index}" aria-label="Go to slide ${index + 1}"></button>
+    `;
+  });
+  
+  elements.carouselTrack.innerHTML = trackHTML;
+  elements.carouselDots.innerHTML = dotsHTML;
+  state.currentCarouselIndex = 0;
+  
+  // Set up dot events
+  document.querySelectorAll('.carousel-dot').forEach(dot => {
+    dot.addEventListener('click', (e) => {
+      const idx = parseInt(e.target.getAttribute('data-index'));
+      setCarouselSlide(idx);
+      startCarouselAutoPlay(); // Reset timer
+    });
+  });
+}
+
+function setCarouselSlide(index) {
+  const slides = document.querySelectorAll('.carousel-slide');
+  const dots = document.querySelectorAll('.carousel-dot');
+  
+  if (slides.length === 0) return;
+  
+  slides[state.currentCarouselIndex].classList.remove('active');
+  dots[state.currentCarouselIndex].classList.remove('active');
+  
+  state.currentCarouselIndex = index;
+  
+  slides[state.currentCarouselIndex].classList.add('active');
+  dots[state.currentCarouselIndex].classList.add('active');
+}
+
+function moveCarousel(direction) {
+  const slidesCount = document.querySelectorAll('.carousel-slide').length;
+  if (slidesCount <= 1) return;
+  
+  let newIndex = state.currentCarouselIndex + direction;
+  if (newIndex >= slidesCount) newIndex = 0;
+  if (newIndex < 0) newIndex = slidesCount - 1;
+  
+  setCarouselSlide(newIndex);
+  startCarouselAutoPlay(); // Reset timer
+}
+
+function startCarouselAutoPlay() {
+  clearInterval(state.carouselTimer);
+  state.carouselTimer = setInterval(() => {
+    moveCarousel(1);
+  }, 5000);
+}
+
+// --- GALLERY GRID DISPLAY CODE ---
+function renderGallery() {
+  let filtered = state.photos.filter(p => p.approved);
+  
+  if (state.activeFilter !== 'all') {
+    if (state.activeFilter === 'uploads') {
+      // Filter for custom items that were uploaded (e.g. not pre-seeded items)
+      filtered = filtered.filter(p => p.id.indexOf('seed') === -1);
+    } else {
+      filtered = filtered.filter(p => p.category === state.activeFilter);
+    }
+  }
+
+  // Sort: most recent first
+  filtered.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+  
+  if (filtered.length === 0) {
+    elements.galleryGrid.innerHTML = `
+      <div class="empty-queue-msg" style="grid-column: 1 / -1;">
+        <i class="fa-regular fa-image"></i>
+        <h3>No Memories Found</h3>
+        <p>Be the first to upload a photo under this category!</p>
+      </div>
+    `;
+    return;
+  }
+  
+  let gridHTML = '';
+  filtered.forEach(photo => {
+    const isUserUpload = photo.id.indexOf('seed') === -1;
+    const uploadBadge = isUserUpload ? `<span class="upload-badge">Contributor</span>` : '';
+    
+    gridHTML += `
+      <div class="gallery-item" onclick="openLightbox('${photo.id}')">
+        ${uploadBadge}
+        <div class="gallery-img-container">
+          <img src="${photo.url}" alt="Alumni Photo" class="gallery-img" loading="lazy">
+          <div class="gallery-item-overlay"></div>
+        </div>
+        <div class="gallery-item-details">
+          <p class="gallery-item-caption">${photo.caption}</p>
+          <div class="gallery-item-meta">
+            <span style="text-transform: capitalize; font-weight: 600; color: var(--up-gold);">${photo.category}</span>
+            <div class="meta-stats">
+              <span class="meta-stat views-count">
+                <i class="fa-regular fa-eye"></i> ${photo.views}
+              </span>
+              <span class="meta-stat likes-count">
+                <i class="fa-regular fa-heart"></i> ${photo.likes}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  elements.galleryGrid.innerHTML = gridHTML;
+}
+
+// --- LIGHTBOX DETAILS MODAL VIEW ---
+function openLightbox(photoId) {
+  const photo = state.photos.find(p => p.id === photoId);
+  if (!photo) return;
+  
+  state.selectedPhoto = photo;
+  
+  // Populate content
+  elements.lightboxImg.src = photo.url;
+  elements.lightboxImg.alt = photo.caption;
+  elements.lightboxCategory.textContent = photo.category;
+  
+  const dateObj = new Date(photo.uploadedAt);
+  elements.lightboxDate.textContent = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  elements.lightboxCaption.textContent = photo.caption;
+  
+  // Track Unique Views (Using sessionStorage to check uniqueness in the current browser session)
+  const sessionViewKey = `viewed_${photo.id}`;
+  if (!sessionStorage.getItem(sessionViewKey)) {
+    photo.views += 1;
+    saveDatabase();
+    sessionStorage.setItem(sessionViewKey, 'true');
+    renderGallery(); // Refresh views count on gallery grid
+    
+    // Sync admin views stat card if active
+    if (state.isLoggedIn) updateAdminStats();
+  }
+  
+  elements.lightboxViews.textContent = photo.views;
+  elements.lightboxLikes.textContent = photo.likes;
+  
+  // Check Likes State
+  const likeStorageKey = `liked_${photo.id}`;
+  const hasLiked = localStorage.getItem(likeStorageKey) === 'true';
+  updateLikeBtnState(hasLiked);
+  
+  openModal(elements.lightboxModal);
+}
+
+window.openLightbox = openLightbox; // Make it global for inline onclick call
+
+function updateLikeBtnState(hasLiked) {
+  if (hasLiked) {
+    elements.likeBtn.classList.add('liked');
+    elements.likeBtn.innerHTML = `<i class="fa-solid fa-heart"></i> Memory Liked`;
+  } else {
+    elements.likeBtn.classList.remove('liked');
+    elements.likeBtn.innerHTML = `<i class="fa-regular fa-heart"></i> Like this memory`;
+  }
+}
+
+function handleLikeToggle() {
+  if (!state.selectedPhoto) return;
+  
+  const photo = state.photos.find(p => p.id === state.selectedPhoto.id);
+  const likeStorageKey = `liked_${photo.id}`;
+  const hasLiked = localStorage.getItem(likeStorageKey) === 'true';
+  
+  if (hasLiked) {
+    // Unlike
+    photo.likes = Math.max(0, photo.likes - 1);
+    localStorage.removeItem(likeStorageKey);
+    showToast("Memory unliked.", "info");
+    updateLikeBtnState(false);
+  } else {
+    // Like
+    photo.likes += 1;
+    localStorage.setItem(likeStorageKey, 'true');
+    showToast("You liked this memory! ❤️", "success");
+    updateLikeBtnState(true);
+  }
+  
+  saveDatabase();
+  elements.lightboxLikes.textContent = photo.likes;
+  renderGallery(); // Update count on grid
+  
+  // Update stats if in Admin view
+  if (state.isLoggedIn) updateAdminStats();
+}
+
+// --- PHOTO UPLOADING FLOW ---
+// Canvas Resizer to optimize base64 images client-side
+function handleFileSelect() {
+  const file = elements.fileInput.files[0];
+  if (!file) return;
+  
+  if (!file.type.match('image.*')) {
+    showToast("Invalid file format. Please select an image file.", "error");
+    return;
+  }
+  
+  if (file.size > 25 * 1024 * 1024) {
+    showToast("File size too large. Please upload an image under 25MB.", "error");
+    return;
+  }
+  
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const tempImg = new Image();
+    tempImg.onload = function() {
+      // Resize image client-side to keep base64 local storage optimized
+      const canvas = document.createElement('canvas');
+      let width = tempImg.width;
+      let height = tempImg.height;
+      
+      const max_size = 1000; // Resize target dimension
+      
+      if (width > max_size || height > max_size) {
+        if (width > height) {
+          height *= max_size / width;
+          width = max_size;
+        } else {
+          width *= max_size / height;
+          height = max_size;
+        }
+      }
+      
+      canvas.width = width;
+      canvas.height = height;
+      
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(tempImg, 0, 0, width, height);
+      
+      // Compress quality to 70% JPEG
+      base64ImageString = canvas.toDataURL('image/jpeg', 0.7);
+      
+      // Update Drag and Drop UI
+      elements.previewImg.src = base64ImageString;
+      elements.previewImg.style.display = 'block';
+      elements.fileDropzone.querySelector('.dropzone-icon').style.display = 'none';
+      elements.fileDropzone.querySelectorAll('.dropzone-text').forEach(t => t.style.display = 'none');
+      
+      showToast("Photo processed and ready for sharing.", "success");
+    };
+    tempImg.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function handleUploadSubmit(e) {
+  e.preventDefault();
+  
+  if (!base64ImageString) {
+    showToast("Please upload an image.", "error");
+    return;
+  }
+  
+  const captionText = elements.uploadCaption.value.trim();
+  let categoryVal = elements.uploadCategory.value;
+  
+  if (categoryVal === 'custom-new') {
+    const customVal = elements.customCategoryInput.value.trim();
+    if (!customVal) {
+      showToast("Please specify the custom category name.", "error");
+      return;
+    }
+    // Sanitize: lowercase, alphanumeric + spaces only, max 30 chars
+    categoryVal = customVal.toLowerCase().replace(/[^a-z0-9 ]/g, '').substring(0, 30);
+    if (!categoryVal) {
+      showToast("Invalid custom category name.", "error");
+      return;
+    }
+  }
+  
+  if (!captionText) {
+    showToast("Please write a short caption.", "error");
+    return;
+  }
+  
+  const newPhoto = {
+    id: `upload-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+    url: base64ImageString,
+    caption: captionText,
+    category: categoryVal,
+    likes: 0,
+    views: 0,
+    approved: false, // Requires admin moderation
+    uploadedAt: new Date().toISOString()
+  };
+  
+  state.photos.push(newPhoto);
+  saveDatabase();
+  
+  closeModal(elements.uploadModal);
+  showToast("Memory submitted! It will appear in the gallery once approved by the administrators.", "success");
+  
+  // If admin is active, redraw the admin queues
+  if (state.isLoggedIn) {
+    renderAdminQueue();
+    updateAdminStats();
+  }
+}
+
+// --- ADMIN MODERATION PANEL FLOW ---
+function showAdminLogin() {
+  elements.adminLoginCard.style.display = 'block';
+  elements.adminDashboard.classList.remove('active');
+  elements.adminLoginForm.reset();
+}
+
+function showAdminDashboard() {
+  elements.adminLoginCard.style.display = 'none';
+  elements.adminDashboard.classList.add('active');
+  updateAdminStats();
+  renderAdminQueue();
+}
+
+function handleAdminLogin(e) {
+  e.preventDefault();
+  
+  const username = elements.adminUsername.value.trim();
+  const password = elements.adminPassword.value.trim();
+  
+  if (username === 'admin' && password === 'admin') {
+    state.isLoggedIn = true;
+    sessionStorage.setItem('admin_logged', 'true');
+    showAdminDashboard();
+    showToast("Welcome back, Administrator.", "success");
+  } else {
+    showToast("Invalid credentials. Try again.", "error");
+    elements.adminPassword.value = '';
+  }
+}
+
+function handleAdminLogout() {
+  state.isLoggedIn = false;
+  sessionStorage.removeItem('admin_logged');
+  showAdminLogin();
+  showToast("Logged out successfully.", "info");
+}
+
+function updateAdminStats() {
+  const approved = state.photos.filter(p => p.approved);
+  const totalLikes = approved.reduce((sum, p) => sum + p.likes, 0);
+  const totalViews = approved.reduce((sum, p) => sum + p.views, 0);
+  
+  elements.statTotalPhotos.textContent = approved.length;
+  elements.statTotalLikes.textContent = totalLikes;
+  elements.statTotalViews.textContent = totalViews;
+}
+
+function updatePendingCountBadge() {
+  const pending = state.photos.filter(p => !p.approved);
+  elements.pendingCountBadge.textContent = pending.length;
+}
+
+function switchAdminTab(tab) {
+  state.adminTab = tab;
+  
+  // Reset active tabs
+  elements.tabPendingBtn.classList.remove('active');
+  elements.tabApprovedBtn.classList.remove('active');
+  elements.tabSettingsBtn.classList.remove('active');
+  
+  if (tab === 'pending') {
+    elements.tabPendingBtn.classList.add('active');
+    elements.adminQueueList.style.display = 'grid';
+    elements.adminSettingsPanel.style.display = 'none';
+    renderAdminQueue();
+  } else if (tab === 'approved') {
+    elements.tabApprovedBtn.classList.add('active');
+    elements.adminQueueList.style.display = 'grid';
+    elements.adminSettingsPanel.style.display = 'none';
+    renderAdminQueue();
+  } else if (tab === 'settings') {
+    elements.tabSettingsBtn.classList.add('active');
+    elements.adminQueueList.style.display = 'none';
+    elements.adminSettingsPanel.style.display = 'block';
+    loadBrandingInputs();
+  }
+}
+
+function renderAdminQueue() {
+  let filtered = [];
+  
+  if (state.adminTab === 'pending') {
+    filtered = state.photos.filter(p => !p.approved);
+  } else {
+    filtered = state.photos.filter(p => p.approved);
+  }
+  
+  // Sort most recent uploads first
+  filtered.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
+  
+  if (filtered.length === 0) {
+    const icon = state.adminTab === 'pending' ? 'fa-circle-check' : 'fa-image';
+    const text = state.adminTab === 'pending' ? 'All clear! No pending photo uploads.' : 'No active memories in the gallery.';
+    elements.adminQueueList.innerHTML = `
+      <div class="empty-queue-msg">
+        <i class="fa-solid ${icon}"></i>
+        <p>${text}</p>
+      </div>
+    `;
+    return;
+  }
+  
+  let queueHTML = '';
+  filtered.forEach(photo => {
+    const dateObj = new Date(photo.uploadedAt);
+    const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    
+    let actionButtons = '';
+    if (state.adminTab === 'pending') {
+      actionButtons = `
+        <button class="mod-btn mod-btn-approve" onclick="approvePhoto('${photo.id}')">
+          <i class="fa-solid fa-check"></i> Approve
+        </button>
+        <button class="mod-btn mod-btn-decline" onclick="declinePhoto('${photo.id}')">
+          <i class="fa-solid fa-xmark"></i> Decline
+        </button>
+      `;
+    } else {
+      actionButtons = `
+        <button class="mod-btn mod-btn-decline" onclick="deletePhotoFromGallery('${photo.id}')" style="flex-grow: 1;">
+          <i class="fa-solid fa-trash-can"></i> Delete from Gallery
+        </button>
+      `;
+    }
+    
+    queueHTML += `
+      <div class="mod-card">
+        <div class="mod-img-container">
+          <img src="${photo.url}" alt="Pending image" class="mod-img">
+        </div>
+        <div class="mod-details">
+          <div>
+            <p class="mod-caption">${photo.caption}</p>
+            <div class="mod-meta">
+              <div style="display: flex; justify-content: space-between;">
+                <span>Category: <strong style="text-transform: capitalize; color: var(--up-gold);">${photo.category}</strong></span>
+                <span>${dateStr}</span>
+              </div>
+            </div>
+          </div>
+          <div class="mod-actions">
+            ${actionButtons}
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  
+  elements.adminQueueList.innerHTML = queueHTML;
+}
+
+// Moderation Action Callbacks (Globally mapped for inline onclick functions)
+function approvePhoto(photoId) {
+  const photo = state.photos.find(p => p.id === photoId);
+  if (!photo) return;
+  
+  photo.approved = true;
+  saveDatabase();
+  
+  showToast("Photo approved and published to gallery!", "success");
+  renderFilters();
+  renderAdminQueue();
+  updateAdminStats();
+  renderGallery();
+  renderCarousel(); // Update carousel if needed
+}
+window.approvePhoto = approvePhoto;
+
+function declinePhoto(photoId) {
+  const confirmDecline = confirm("Are you sure you want to decline and permanently delete this uploaded photo?");
+  if (!confirmDecline) return;
+  
+  state.photos = state.photos.filter(p => p.id !== photoId);
+  saveDatabase();
+  
+  showToast("Photo submission declined.", "info");
+  renderFilters();
+  renderAdminQueue();
+  updateAdminStats();
+  renderGallery();
+}
+window.declinePhoto = declinePhoto;
+
+function deletePhotoFromGallery(photoId) {
+  const confirmDelete = confirm("Are you sure you want to delete this memory from the gallery?");
+  if (!confirmDelete) return;
+  
+  // If it's a seed photo, we can just toggle approved back to false or delete it. Let's delete it or mark approved: false.
+  // Deleting it is clean!
+  state.photos = state.photos.filter(p => p.id !== photoId);
+  saveDatabase();
+  
+  showToast("Photo removed from gallery.", "info");
+  renderFilters();
+  renderAdminQueue();
+  updateAdminStats();
+  renderGallery();
+  renderCarousel();
+}
+window.deletePhotoFromGallery = deletePhotoFromGallery;
+
+// --- EXECUTE ON WINDOW LOAD ---
+window.addEventListener('DOMContentLoaded', initApp);
