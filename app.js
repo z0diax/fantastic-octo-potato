@@ -1372,34 +1372,7 @@ function handleUploadSubmit(e) {
   
   const photoId = `upload-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   
-  if (isFirebaseEnabled) {
-    showToast("Uploading and compressing image globally...", "info");
-    const filename = `photos/${Date.now()}-${Math.floor(Math.random() * 1000)}.jpg`;
-    const fileRef = storage.ref().child(filename);
-    
-    fileRef.putString(base64ImageString, 'data_url').then((snapshot) => {
-      return snapshot.ref.getDownloadURL();
-    }).then((downloadURL) => {
-      const newPhoto = {
-        id: photoId,
-        url: downloadURL,
-        storagePath: filename,
-        caption: captionText,
-        category: categoryVal,
-        likes: [],
-        views: 0,
-        approved: false,
-        uploadedAt: new Date().toISOString()
-      };
-      return db.collection('photos').doc(photoId).set(newPhoto);
-    }).then(() => {
-      closeModal(elements.uploadModal);
-      showToast("Memory submitted! It will appear in the gallery once approved by the administrators.", "success");
-    }).catch((err) => {
-      console.error("Upload failed", err);
-      showToast("Global upload failed. Please try again.", "error");
-    });
-  } else {
+  function saveLocally() {
     const newPhoto = {
       id: photoId,
       url: base64ImageString,
@@ -1417,6 +1390,51 @@ function handleUploadSubmit(e) {
     closeModal(elements.uploadModal);
     showToast("Memory submitted! It will appear in the gallery once approved by the administrators.", "success");
     syncUI();
+  }
+
+  if (isFirebaseEnabled) {
+    showToast("Uploading and compressing image globally...", "info");
+    
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error("Global upload timed out")), 10000)
+    );
+    
+    try {
+      const filename = `photos/${Date.now()}-${Math.floor(Math.random() * 1000)}.jpg`;
+      const fileRef = storage.ref().child(filename);
+      
+      const uploadPromise = fileRef.putString(base64ImageString, 'data_url')
+        .then((snapshot) => snapshot.ref.getDownloadURL())
+        .then((downloadURL) => {
+          const newPhoto = {
+            id: photoId,
+            url: downloadURL,
+            storagePath: filename,
+            caption: captionText,
+            category: categoryVal,
+            likes: [],
+            views: 0,
+            approved: false,
+            uploadedAt: new Date().toISOString()
+          };
+          return db.collection('photos').doc(photoId).set(newPhoto);
+        });
+        
+      Promise.race([uploadPromise, timeoutPromise]).then(() => {
+        closeModal(elements.uploadModal);
+        showToast("Memory submitted! It will appear in the gallery once approved by the administrators.", "success");
+      }).catch((err) => {
+        console.error("Global upload failed or timed out:", err);
+        showToast("Global sync failed or timed out. Saving locally instead...", "warning");
+        saveLocally();
+      });
+    } catch (err) {
+      console.error("Firebase Storage initialization error:", err);
+      showToast("Firebase error. Saving locally instead...", "warning");
+      saveLocally();
+    }
+  } else {
+    saveLocally();
   }
 }
 
