@@ -10,7 +10,7 @@ const DEFAULT_PHOTOS = [
     likes: 142,
     views: 312,
     approved: true,
-    uploadedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() // 5 days ago
+    uploadedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString() // 10 days ago
   },
   {
     id: 'seed-reunion',
@@ -20,7 +20,7 @@ const DEFAULT_PHOTOS = [
     likes: 98,
     views: 245,
     approved: true,
-    uploadedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString() // 4 days ago
+    uploadedAt: new Date(Date.now() - 9 * 24 * 60 * 60 * 1000).toISOString() // 9 days ago
   },
   {
     id: 'seed-sunflowers',
@@ -30,7 +30,7 @@ const DEFAULT_PHOTOS = [
     likes: 189,
     views: 403,
     approved: true,
-    uploadedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString() // 3 days ago
+    uploadedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString() // 8 days ago
   },
   {
     id: 'seed-celebration',
@@ -40,7 +40,57 @@ const DEFAULT_PHOTOS = [
     likes: 215,
     views: 520,
     approved: true,
-    uploadedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() // 2 days ago
+    uploadedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days ago
+  },
+  {
+    id: 'seed-batch89-beach1',
+    url: 'assets/Batch 89/att.gqoFc1LH54ig3pBWizTQPrhePsl_zQ20FWctxDwL1LU.jpg',
+    caption: 'A memorable beach getaway with the UP Batch 1989 sisters. Sun, sand, and smiles capturing the lifelong friendships forged during our university days.',
+    category: 'batch 89',
+    likes: 112,
+    views: 185,
+    approved: true,
+    uploadedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'seed-batch89-beach2',
+    url: 'assets/Batch 89/att.Ja1e36PxpKWazMT3Y4QpwwygsZ7bFB0ccw_CfZOpdvY.jpg',
+    caption: 'UP Batch 1989 outing: A full house of friends sharing laughter and good times by the beach, keeping the spirit of camaraderie alive.',
+    category: 'batch 89',
+    likes: 130,
+    views: 210,
+    approved: true,
+    uploadedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'seed-batch89-beach3',
+    url: 'assets/Batch 89/att.JX93g8F2JqUVRnArrk6BWy6C5netRkrYBpHbC8zt0KU.jpg',
+    caption: "UP Batch '89: Posing with youthful energy and joy during our memorable summer trip. A snapshot of true friendship.",
+    category: 'batch 89',
+    likes: 95,
+    views: 160,
+    approved: true,
+    uploadedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'seed-batch89-sports',
+    url: 'assets/Batch 89/att.ugZE2XlbKni0XGlWW74AXeK0TkHepZfC4A5ylwzfIOY.jpg',
+    caption: "The UP Batch '89 baseball/softball team posing in their green and white uniforms. Sportsmanship, team spirit, and pride representing the green and gold.",
+    category: 'batch 89',
+    likes: 154,
+    views: 240,
+    approved: true,
+    uploadedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+  },
+  {
+    id: 'seed-batch89-sisterhood',
+    url: 'assets/Batch 89/att.yKt1NA99pLa_ss6AdCjbL8nccu3jjSizKtI6o3RUU0w.jpg',
+    caption: "A beautiful sisterhood. UP Batch '89 alumni lining up and showing the strong bond that links them through decades of friendship.",
+    category: 'batch 89',
+    likes: 121,
+    views: 198,
+    approved: true,
+    uploadedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
   }
 ];
 
@@ -208,26 +258,39 @@ function loadDatabase() {
         fbPhotos.push({ id: doc.id, ...doc.data() });
       });
       
-      // Seed if Firestore is empty
+      // If Firestore is empty, seed it
       if (fbPhotos.length === 0) {
         console.log("Firestore empty. Seeding DEFAULT_PHOTOS...");
         DEFAULT_PHOTOS.forEach(photo => {
           db.collection('photos').doc(photo.id).set(photo);
         });
       } else {
-        state.photos = fbPhotos;
-        
-        // Reactive details modal updates if open
-        if (state.selectedPhoto) {
-          const updated = fbPhotos.find(p => p.id === state.selectedPhoto.id);
-          if (updated) {
-            state.selectedPhoto = updated;
-            elements.lightboxViews.textContent = updated.views;
-            elements.lightboxLikes.textContent = updated.likes;
+        // Dynamic seeding for newly added seed photos
+        let missingSeeded = false;
+        DEFAULT_PHOTOS.forEach(photo => {
+          const exists = fbPhotos.some(p => p.id === photo.id);
+          if (!exists) {
+            console.log(`Seeding missing photo to Firestore: ${photo.id}`);
+            db.collection('photos').doc(photo.id).set(photo);
+            missingSeeded = true;
           }
-        }
+        });
         
-        syncUI();
+        if (!missingSeeded) {
+          state.photos = fbPhotos;
+          
+          // Reactive details modal updates if open
+          if (state.selectedPhoto) {
+            const updated = fbPhotos.find(p => p.id === state.selectedPhoto.id);
+            if (updated) {
+              state.selectedPhoto = updated;
+              elements.lightboxViews.textContent = updated.views;
+              elements.lightboxLikes.textContent = updated.likes;
+            }
+          }
+          
+          syncUI();
+        }
       }
     }, (error) => {
       console.error("Firestore onSnapshot error, falling back to local storage.", error);
@@ -239,6 +302,16 @@ function loadDatabase() {
     if (localData) {
       try {
         state.photos = JSON.parse(localData);
+        // Seed missing default photos locally
+        let modified = false;
+        DEFAULT_PHOTOS.forEach(photo => {
+          const exists = state.photos.some(p => p.id === photo.id);
+          if (!exists) {
+            state.photos.push(photo);
+            modified = true;
+          }
+        });
+        if (modified) saveDatabase();
       } catch (e) {
         console.error("Failed to parse local storage photos. Seeding instead.", e);
         state.photos = [...DEFAULT_PHOTOS];
