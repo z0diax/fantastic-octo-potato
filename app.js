@@ -7,7 +7,7 @@ const DEFAULT_PHOTOS = [
     url: 'assets/Batch 89/att.gqoFc1LH54ig3pBWizTQPrhePsl_zQ20FWctxDwL1LU.jpg',
     caption: 'A memorable beach getaway with the UP Batch 1989 sisters. Sun, sand, and smiles capturing the lifelong friendships forged during our university days.',
     category: 'batch 89',
-    likes: 0,
+    likes: [],
     views: 0,
     approved: true,
     uploadedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
@@ -17,7 +17,7 @@ const DEFAULT_PHOTOS = [
     url: 'assets/Batch 89/att.Ja1e36PxpKWazMT3Y4QpwwygsZ7bFB0ccw_CfZOpdvY.jpg',
     caption: 'UP Batch 1989 outing: A full house of friends sharing laughter and good times by the beach, keeping the spirit of camaraderie alive.',
     category: 'batch 89',
-    likes: 0,
+    likes: [],
     views: 0,
     approved: true,
     uploadedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString()
@@ -27,7 +27,7 @@ const DEFAULT_PHOTOS = [
     url: 'assets/Batch 89/att.JX93g8F2JqUVRnArrk6BWy6C5netRkrYBpHbC8zt0KU.jpg',
     caption: "UP Batch '89: Posing with youthful energy and joy during our memorable summer trip. A snapshot of true friendship.",
     category: 'batch 89',
-    likes: 0,
+    likes: [],
     views: 0,
     approved: true,
     uploadedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
@@ -37,7 +37,7 @@ const DEFAULT_PHOTOS = [
     url: 'assets/Batch 89/att.ugZE2XlbKni0XGlWW74AXeK0TkHepZfC4A5ylwzfIOY.jpg',
     caption: "The UP Batch '89 baseball/softball team posing in their green and white uniforms. Sportsmanship, team spirit, and pride representing the green and gold.",
     category: 'batch 89',
-    likes: 0,
+    likes: [],
     views: 0,
     approved: true,
     uploadedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
@@ -47,7 +47,7 @@ const DEFAULT_PHOTOS = [
     url: 'assets/Batch 89/att.yKt1NA99pLa_ss6AdCjbL8nccu3jjSizKtI6o3RUU0w.jpg',
     caption: "A beautiful sisterhood. UP Batch '89 alumni lining up and showing the strong bond that links them through decades of friendship.",
     category: 'batch 89',
-    likes: 0,
+    likes: [],
     views: 0,
     approved: true,
     uploadedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
@@ -191,6 +191,32 @@ const elements = {
   footerUpload: document.getElementById('footer-upload-btn')
 };
 
+// --- UNIQUE CLIENT IDENTIFIER & LIKE STATE HELPERS ---
+function getClientId() {
+  let clientId = localStorage.getItem('up_katitirok_client_id');
+  if (!clientId) {
+    clientId = 'client-' + Date.now() + '-' + Math.random().toString(36).substring(2, 11);
+    localStorage.setItem('up_katitirok_client_id', clientId);
+  }
+  return clientId;
+}
+
+function getLikesCount(photo) {
+  if (Array.isArray(photo.likes)) {
+    return photo.likes.length;
+  }
+  return photo.likes || 0;
+}
+
+function hasUserLiked(photo) {
+  const clientId = getClientId();
+  if (Array.isArray(photo.likes)) {
+    return photo.likes.includes(clientId);
+  }
+  const likeStorageKey = `liked_${photo.id}`;
+  return localStorage.getItem(likeStorageKey) === 'true';
+}
+
 // --- INITIALIZATION ---
 function initApp() {
   loadDatabase();
@@ -223,7 +249,18 @@ function loadDatabase() {
     db.collection('photos').onSnapshot((snapshot) => {
       const fbPhotos = [];
       snapshot.forEach(doc => {
-        fbPhotos.push({ id: doc.id, ...doc.data() });
+        const data = doc.data();
+        if (typeof data.likes === 'number') {
+          console.log(`Converting numeric likes to array for photo: ${doc.id}`);
+          const count = data.likes;
+          const dummyLikes = [];
+          for (let i = 0; i < count; i++) {
+            dummyLikes.push(`migrated-${i}`);
+          }
+          db.collection('photos').doc(doc.id).update({ likes: dummyLikes }).catch(e => console.error(e));
+          data.likes = dummyLikes;
+        }
+        fbPhotos.push({ id: doc.id, ...data });
       });
       
       // If Firestore is empty, seed it
@@ -890,7 +927,7 @@ function renderGallery() {
                 <i class="fa-regular fa-eye"></i> ${photo.views}
               </span>
               <span class="meta-stat likes-count">
-                <i class="fa-regular fa-heart"></i> ${photo.likes}
+                <i class="fa-regular fa-heart"></i> ${getLikesCount(photo)}
               </span>
             </div>
           </div>
@@ -937,11 +974,10 @@ function openLightbox(photoId) {
   }
   
   elements.lightboxViews.textContent = photo.views;
-  elements.lightboxLikes.textContent = photo.likes;
+  elements.lightboxLikes.textContent = getLikesCount(photo);
   
   // Check Likes State
-  const likeStorageKey = `liked_${photo.id}`;
-  const hasLiked = localStorage.getItem(likeStorageKey) === 'true';
+  const hasLiked = hasUserLiked(photo);
   updateLikeBtnState(hasLiked);
   
   openModal(elements.lightboxModal);
@@ -963,26 +999,31 @@ function handleLikeToggle() {
   if (!state.selectedPhoto) return;
   
   const photo = state.photos.find(p => p.id === state.selectedPhoto.id);
+  const clientId = getClientId();
+  const liked = hasUserLiked(photo);
   const likeStorageKey = `liked_${photo.id}`;
-  const hasLiked = localStorage.getItem(likeStorageKey) === 'true';
   
-  if (hasLiked) {
+  if (liked) {
     // Unlike
     if (isFirebaseEnabled) {
       db.collection('photos').doc(photo.id).update({
-        likes: firebase.firestore.FieldValue.increment(-1)
+        likes: firebase.firestore.FieldValue.arrayRemove(clientId)
       }).then(() => {
         localStorage.removeItem(likeStorageKey);
         showToast("Memory unliked.", "info");
         updateLikeBtnState(false);
       }).catch(err => console.error(err));
     } else {
-      photo.likes = Math.max(0, photo.likes - 1);
+      if (Array.isArray(photo.likes)) {
+        photo.likes = photo.likes.filter(id => id !== clientId);
+      } else {
+        photo.likes = Math.max(0, (photo.likes || 0) - 1);
+      }
       localStorage.removeItem(likeStorageKey);
       showToast("Memory unliked.", "info");
       updateLikeBtnState(false);
       saveDatabase();
-      elements.lightboxLikes.textContent = photo.likes;
+      elements.lightboxLikes.textContent = getLikesCount(photo);
       renderGallery();
       if (state.isLoggedIn) updateAdminStats();
     }
@@ -990,19 +1031,28 @@ function handleLikeToggle() {
     // Like
     if (isFirebaseEnabled) {
       db.collection('photos').doc(photo.id).update({
-        likes: firebase.firestore.FieldValue.increment(1)
+        likes: firebase.firestore.FieldValue.arrayUnion(clientId)
       }).then(() => {
         localStorage.setItem(likeStorageKey, 'true');
         showToast("You liked this memory! ❤️", "success");
         updateLikeBtnState(true);
       }).catch(err => console.error(err));
     } else {
-      photo.likes += 1;
+      if (!Array.isArray(photo.likes)) {
+        const currentLikes = photo.likes || 0;
+        photo.likes = [];
+        for (let i = 0; i < currentLikes; i++) {
+          photo.likes.push(`dummy-${i}`);
+        }
+      }
+      if (!photo.likes.includes(clientId)) {
+        photo.likes.push(clientId);
+      }
       localStorage.setItem(likeStorageKey, 'true');
       showToast("You liked this memory! ❤️", "success");
       updateLikeBtnState(true);
       saveDatabase();
-      elements.lightboxLikes.textContent = photo.likes;
+      elements.lightboxLikes.textContent = getLikesCount(photo);
       renderGallery();
       if (state.isLoggedIn) updateAdminStats();
     }
@@ -1114,7 +1164,7 @@ function handleUploadSubmit(e) {
         storagePath: filename,
         caption: captionText,
         category: categoryVal,
-        likes: 0,
+        likes: [],
         views: 0,
         approved: false,
         uploadedAt: new Date().toISOString()
@@ -1133,7 +1183,7 @@ function handleUploadSubmit(e) {
       url: base64ImageString,
       caption: captionText,
       category: categoryVal,
-      likes: 0,
+      likes: [],
       views: 0,
       approved: false,
       uploadedAt: new Date().toISOString()
@@ -1188,7 +1238,7 @@ function handleAdminLogout() {
 
 function updateAdminStats() {
   const approved = state.photos.filter(p => p.approved);
-  const totalLikes = approved.reduce((sum, p) => sum + p.likes, 0);
+  const totalLikes = approved.reduce((sum, p) => sum + getLikesCount(p), 0);
   const totalViews = approved.reduce((sum, p) => sum + p.views, 0);
   
   elements.statTotalPhotos.textContent = approved.length;
