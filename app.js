@@ -1280,6 +1280,9 @@ function renderAdminQueue() {
         <div class="mod-details">
           <div>
             <p class="mod-caption">${photo.caption}</p>
+            <button class="btn-edit-caption" onclick="editCaption('${photo.id}')">
+              <i class="fa-solid fa-pen-to-square"></i> Edit Caption
+            </button>
             <div class="mod-meta">
               <div style="display: flex; justify-content: space-between;">
                 <span>Category: <strong style="text-transform: capitalize; color: var(--up-gold);">${photo.category}</strong></span>
@@ -1388,6 +1391,37 @@ function deletePhotoFromGallery(photoId) {
   }
 }
 window.deletePhotoFromGallery = deletePhotoFromGallery;
+
+function editCaption(photoId) {
+  const photo = state.photos.find(p => p.id === photoId);
+  if (!photo) return;
+  
+  const newCaption = prompt("Edit caption:", photo.caption);
+  if (newCaption === null) return; // Cancelled
+  
+  const trimmed = newCaption.trim();
+  if (!trimmed) {
+    showToast("Caption cannot be empty.", "error");
+    return;
+  }
+  
+  if (isFirebaseEnabled) {
+    db.collection('photos').doc(photoId).update({
+      caption: trimmed
+    }).then(() => {
+      showToast("Caption updated successfully!", "success");
+    }).catch(err => {
+      console.error(err);
+      showToast("Failed to update caption.", "error");
+    });
+  } else {
+    photo.caption = trimmed;
+    saveDatabase();
+    showToast("Caption updated successfully!", "success");
+    syncUI();
+  }
+}
+window.editCaption = editCaption;
 
 // --- EXECUTE ON WINDOW LOAD ---
 window.addEventListener('DOMContentLoaded', initApp);
