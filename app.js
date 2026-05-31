@@ -217,6 +217,27 @@ function hasUserLiked(photo) {
   return localStorage.getItem(likeStorageKey) === 'true';
 }
 
+function updateLightboxLikes(count, animate = true) {
+  const likesSpan = elements.lightboxLikes;
+  if (!likesSpan) return;
+  const currentCount = parseInt(likesSpan.textContent) || 0;
+  
+  likesSpan.textContent = count;
+  
+  if (animate && currentCount !== count) {
+    likesSpan.classList.remove('number-pop');
+    void likesSpan.offsetWidth; // Trigger reflow
+    likesSpan.classList.add('number-pop');
+    
+    const heartIcon = document.querySelector('.lightbox-stat-item.likes i');
+    if (heartIcon) {
+      heartIcon.classList.remove('heart-pulse');
+      void heartIcon.offsetWidth; // Trigger reflow
+      heartIcon.classList.add('heart-pulse');
+    }
+  }
+}
+
 // --- INITIALIZATION ---
 function initApp() {
   loadDatabase();
@@ -301,7 +322,7 @@ function loadDatabase() {
             if (updated) {
               state.selectedPhoto = updated;
               elements.lightboxViews.textContent = updated.views;
-              elements.lightboxLikes.textContent = getLikesCount(updated);
+              updateLightboxLikes(getLikesCount(updated));
             }
           }
           
@@ -974,7 +995,7 @@ function openLightbox(photoId) {
   }
   
   elements.lightboxViews.textContent = photo.views;
-  elements.lightboxLikes.textContent = getLikesCount(photo);
+  updateLightboxLikes(getLikesCount(photo), false);
   
   // Check Likes State
   const hasLiked = hasUserLiked(photo);
@@ -1023,7 +1044,7 @@ function handleLikeToggle() {
       showToast("Memory unliked.", "info");
       updateLikeBtnState(false);
       saveDatabase();
-      elements.lightboxLikes.textContent = getLikesCount(photo);
+      updateLightboxLikes(getLikesCount(photo));
       renderGallery();
       if (state.isLoggedIn) updateAdminStats();
     }
@@ -1052,7 +1073,7 @@ function handleLikeToggle() {
       showToast("You liked this memory! ❤️", "success");
       updateLikeBtnState(true);
       saveDatabase();
-      elements.lightboxLikes.textContent = getLikesCount(photo);
+      updateLightboxLikes(getLikesCount(photo));
       renderGallery();
       if (state.isLoggedIn) updateAdminStats();
     }

@@ -1317,6 +1317,29 @@ footer {
   }
 }
 
+@keyframes numberPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.45); color: var(--up-gold); text-shadow: 0 0 8px rgba(212, 175, 55, 0.5); }
+  100% { transform: scale(1); }
+}
+
+.number-pop {
+  display: inline-block;
+  animation: numberPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes heartPulse {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.45); color: #e25858; filter: drop-shadow(0 0 6px rgba(226, 88, 88, 0.6)); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+.heart-pulse {
+  display: inline-block;
+  animation: heartPulse 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
 /* Responsive Overrides and Mobile Compatibility */
 @media (max-width: 900px) {
   .modal-wrapper {
