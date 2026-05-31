@@ -64,11 +64,11 @@ let isFirebaseEnabled = false;
 let db = null;
 let storage = null;
 
-if (typeof firebaseConfig !== 'undefined' && 
-    firebaseConfig.apiKey && 
-    firebaseConfig.apiKey !== "YOUR_API_KEY" &&
-    firebaseConfig.projectId && 
-    firebaseConfig.projectId !== "YOUR_PROJECT_ID") {
+if (typeof firebaseConfig !== 'undefined' &&
+  firebaseConfig.apiKey &&
+  firebaseConfig.apiKey !== "YOUR_API_KEY" &&
+  firebaseConfig.projectId &&
+  firebaseConfig.projectId !== "YOUR_PROJECT_ID") {
   try {
     firebase.initializeApp(firebaseConfig);
     db = firebase.firestore();
@@ -106,21 +106,21 @@ const elements = {
   logoBtn: document.getElementById('nav-logo'),
   homeLink: document.getElementById('nav-home-link'),
   openUploadBtn: document.getElementById('open-upload-btn'),
-  
+
   // Views
   publicView: document.getElementById('public-view-container'),
   adminView: document.getElementById('admin-view-container'),
-  
+
   // Carousel
   carouselTrack: document.getElementById('carousel-track'),
   carouselPrev: document.getElementById('carousel-prev'),
   carouselNext: document.getElementById('carousel-next'),
   carouselDots: document.getElementById('carousel-dots'),
-  
+
   // Gallery
   galleryGrid: document.getElementById('gallery-grid'),
   filtersContainer: document.getElementById('gallery-filters-container'),
-  
+
   // Lightbox Modal
   lightboxModal: document.getElementById('lightbox-modal'),
   closeLightboxBtn: document.getElementById('close-lightbox-btn'),
@@ -131,14 +131,14 @@ const elements = {
   lightboxViews: document.getElementById('lightbox-views-count'),
   lightboxLikes: document.getElementById('lightbox-likes-count'),
   likeBtn: document.getElementById('like-btn'),
-  
+
   // Comments elements
   lightboxCommentsList: document.getElementById('lightbox-comments-list'),
   lightboxCommentForm: document.getElementById('lightbox-comment-form'),
   commentAuthorInput: document.getElementById('comment-author-input'),
   commentTextInput: document.getElementById('comment-text-input'),
   lightboxCommentsCount: document.getElementById('lightbox-comments-count'),
-  
+
   // Upload Modal
   uploadModal: document.getElementById('upload-modal'),
   closeUploadBtn: document.getElementById('close-upload-btn'),
@@ -151,20 +151,20 @@ const elements = {
   uploadCategory: document.getElementById('upload-category'),
   customCategoryGroup: document.getElementById('custom-category-group'),
   customCategoryInput: document.getElementById('upload-custom-category'),
-  
+
   // Edit Caption Modal
   editCaptionModal: document.getElementById('edit-caption-modal'),
   closeEditCaptionBtn: document.getElementById('close-edit-caption-btn'),
   cancelEditCaptionBtn: document.getElementById('cancel-edit-caption-btn'),
   editCaptionForm: document.getElementById('edit-caption-form'),
   editPhotoCaption: document.getElementById('edit-photo-caption'),
-  
+
   // Admin Login
   adminLoginCard: document.getElementById('admin-login-card'),
   adminLoginForm: document.getElementById('admin-login-form'),
   adminUsername: document.getElementById('admin-username'),
   adminPassword: document.getElementById('admin-password'),
-  
+
   // Admin Dashboard
   adminDashboard: document.getElementById('admin-dashboard-container'),
   adminLogoutBtn: document.getElementById('admin-logout-btn'),
@@ -175,7 +175,7 @@ const elements = {
   tabApprovedBtn: document.getElementById('tab-approved-btn'),
   pendingCountBadge: document.getElementById('pending-count'),
   adminQueueList: document.getElementById('admin-queue-list'),
-  
+
   // Logo Nodes
   navLogoShield: document.getElementById('nav-logo-shield'),
   navLogoTitle: document.getElementById('nav-logo-title'),
@@ -197,7 +197,7 @@ const elements = {
 
   // Notifications
   toastContainer: document.getElementById('toast-container'),
-  
+
   // Footer Links
   footerHome: document.getElementById('footer-home-btn'),
   footerUpload: document.getElementById('footer-upload-btn')
@@ -233,14 +233,14 @@ function updateLightboxLikes(count, animate = true) {
   const likesSpan = elements.lightboxLikes;
   if (!likesSpan) return;
   const currentCount = parseInt(likesSpan.textContent) || 0;
-  
+
   likesSpan.textContent = count;
-  
+
   if (animate && currentCount !== count) {
     likesSpan.classList.remove('number-pop');
     void likesSpan.offsetWidth; // Trigger reflow
     likesSpan.classList.add('number-pop');
-    
+
     const heartIcon = document.querySelector('.lightbox-stat-item.likes i');
     if (heartIcon) {
       heartIcon.classList.remove('heart-pulse');
@@ -256,7 +256,7 @@ function initApp() {
   applyBranding();
   initEventListeners();
   startCarouselAutoPlay();
-  
+
   // Check session login state
   if (sessionStorage.getItem('admin_logged') === 'true') {
     state.isLoggedIn = true;
@@ -300,7 +300,7 @@ function loadDatabase() {
         }
         fbPhotos.push({ id: doc.id, ...data });
       });
-      
+
       // If Firestore is empty, seed it
       if (fbPhotos.length === 0) {
         console.log("Firestore empty. Seeding DEFAULT_PHOTOS...");
@@ -311,7 +311,7 @@ function loadDatabase() {
         // Dynamic seeding for newly added seed photos and removal of deprecated ones
         const oldSeedIds = ['seed-oblation', 'seed-reunion', 'seed-sunflowers', 'seed-celebration'];
         let needsWrite = false;
-        
+
         oldSeedIds.forEach(id => {
           const exists = fbPhotos.some(p => p.id === id);
           if (exists) {
@@ -320,7 +320,7 @@ function loadDatabase() {
             needsWrite = true;
           }
         });
-        
+
         DEFAULT_PHOTOS.forEach(photo => {
           const fbPhoto = fbPhotos.find(p => p.id === photo.id);
           if (!fbPhoto) {
@@ -329,10 +329,10 @@ function loadDatabase() {
             needsWrite = true;
           }
         });
-        
+
         if (!needsWrite) {
           state.photos = fbPhotos;
-          
+
           // Reactive details modal updates if open
           if (state.selectedPhoto) {
             const updated = fbPhotos.find(p => p.id === state.selectedPhoto.id);
@@ -343,7 +343,7 @@ function loadDatabase() {
               renderComments(updated);
             }
           }
-          
+
           syncUI();
         }
       }
@@ -362,7 +362,7 @@ function loadDatabase() {
         const initialLength = state.photos.length;
         state.photos = state.photos.filter(p => !oldSeedIds.includes(p.id));
         let modified = state.photos.length !== initialLength;
-        
+
         // Ensure comments and likes arrays exist for all photos locally
         state.photos.forEach(p => {
           if (!p.comments || !Array.isArray(p.comments)) {
@@ -412,16 +412,16 @@ function initEventListeners() {
   // Navigation secret triple-click to open Admin View
   let logoClicks = 0;
   let logoClickTimer = null;
-  
+
   elements.logoBtn.addEventListener('click', (e) => {
     e.preventDefault();
     logoClicks++;
-    
+
     clearTimeout(logoClickTimer);
     logoClickTimer = setTimeout(() => {
       logoClicks = 0;
     }, 1000); // 1-second timeout for triple click
-    
+
     if (logoClicks === 3) {
       logoClicks = 0;
       clearTimeout(logoClickTimer);
@@ -436,28 +436,28 @@ function initEventListeners() {
     elements.homeLink.addEventListener('click', (e) => { e.preventDefault(); showHomeView(); });
   }
   elements.footerHome.addEventListener('click', (e) => { e.preventDefault(); showHomeView(); });
-  
+
   // Modals Toggles
   elements.openUploadBtn.addEventListener('click', () => openModal(elements.uploadModal));
   elements.footerUpload.addEventListener('click', (e) => { e.preventDefault(); openModal(elements.uploadModal); });
-  
+
   elements.closeUploadBtn.addEventListener('click', () => closeModal(elements.uploadModal));
   elements.cancelUploadBtn.addEventListener('click', () => closeModal(elements.uploadModal));
   elements.closeLightboxBtn.addEventListener('click', () => closeModal(elements.lightboxModal));
   elements.closeEditCaptionBtn.addEventListener('click', () => closeModal(elements.editCaptionModal));
   elements.cancelEditCaptionBtn.addEventListener('click', () => closeModal(elements.editCaptionModal));
-  
+
   // Close modals clicking outside
   window.addEventListener('click', (e) => {
     if (e.target === elements.uploadModal) closeModal(elements.uploadModal);
     if (e.target === elements.lightboxModal) closeModal(elements.lightboxModal);
     if (e.target === elements.editCaptionModal) closeModal(elements.editCaptionModal);
   });
-  
+
   // Carousel Buttons
   elements.carouselPrev.addEventListener('click', () => moveCarousel(-1));
   elements.carouselNext.addEventListener('click', () => moveCarousel(1));
-  
+
   // Gallery Filters
   elements.filtersContainer.addEventListener('click', (e) => {
     if (e.target.classList.contains('filter-btn')) {
@@ -467,14 +467,14 @@ function initEventListeners() {
       renderGallery();
     }
   });
-  
+
   // Lightbox Interactions
   elements.likeBtn.addEventListener('click', handleLikeToggle);
-  
+
   // Image Upload Logic (Drag and Drop / Select)
   elements.fileDropzone.addEventListener('click', () => elements.fileInput.click());
   elements.fileInput.addEventListener('change', handleFileSelect);
-  
+
   // Custom Category Dropdown Toggler
   elements.uploadCategory.addEventListener('change', () => {
     if (elements.uploadCategory.value === 'custom-new') {
@@ -487,7 +487,7 @@ function initEventListeners() {
       elements.customCategoryInput.value = '';
     }
   });
-  
+
   elements.fileDropzone.addEventListener('dragover', (e) => {
     e.preventDefault();
     elements.fileDropzone.classList.add('dragover');
@@ -503,15 +503,15 @@ function initEventListeners() {
       handleFileSelect();
     }
   });
-  
+
   elements.uploadForm.addEventListener('submit', handleUploadSubmit);
   elements.editCaptionForm.addEventListener('submit', handleEditCaptionSubmit);
   elements.lightboxCommentForm.addEventListener('submit', handleCommentSubmit);
-  
+
   // Admin Interactions
   elements.adminLoginForm.addEventListener('submit', handleAdminLogin);
   elements.adminLogoutBtn.addEventListener('click', handleAdminLogout);
-  
+
   elements.tabPendingBtn.addEventListener('click', () => switchAdminTab('pending'));
   elements.tabApprovedBtn.addEventListener('click', () => switchAdminTab('approved'));
   elements.tabSettingsBtn.addEventListener('click', () => switchAdminTab('settings'));
@@ -525,7 +525,7 @@ function showHomeView() {
   if (elements.homeLink) elements.homeLink.classList.add('active');
   elements.publicView.style.display = 'block';
   elements.adminView.classList.remove('active');
-  
+
   // Restart Carousel AutoPlay
   startCarouselAutoPlay();
 }
@@ -534,10 +534,10 @@ function showAdminView() {
   if (elements.homeLink) elements.homeLink.classList.remove('active');
   elements.publicView.style.display = 'none';
   elements.adminView.classList.add('active');
-  
+
   // Stop Carousel AutoPlay
   clearInterval(state.carouselTimer);
-  
+
   if (state.isLoggedIn) {
     showAdminDashboard();
   } else {
@@ -552,36 +552,36 @@ function getActiveCategories() {
   const approvedCats = state.photos
     .filter(p => p.approved)
     .map(p => p.category.toLowerCase().trim());
-  
+
   return Array.from(new Set([...base, ...approvedCats]));
 }
 
 function renderFilters() {
   const categories = getActiveCategories();
   let html = `<button class="filter-btn ${state.activeFilter === 'all' ? 'active' : ''}" data-filter="all">All Photos</button>`;
-  
+
   categories.forEach(cat => {
     // Capitalize category name for display
     const label = cat.charAt(0).toUpperCase() + cat.slice(1);
     html += `<button class="filter-btn ${state.activeFilter === cat ? 'active' : ''}" data-filter="${cat}">${label}</button>`;
   });
-  
-  html += `<button class="filter-btn ${state.activeFilter === 'uploads' ? 'active' : ''}" data-filter="uploads">User Uploads</button>`;
+
+  html += `<button class="filter-btn ${state.activeFilter === 'uploads' ? 'active' : ''}" data-filter="uploads">Your Uploads</button>`;
   elements.filtersContainer.innerHTML = html;
 }
 
 function renderUploadCategories() {
   const categories = getActiveCategories();
   let html = '';
-  
+
   categories.forEach(cat => {
     const label = cat.charAt(0).toUpperCase() + cat.slice(1);
     html += `<option value="${cat}">${label}</option>`;
   });
-  
+
   html += `<option value="custom-new">Other (Create New)...</option>`;
   elements.uploadCategory.innerHTML = html;
-  
+
   // Hide custom input group by default
   elements.customCategoryGroup.style.display = 'none';
   elements.customCategoryInput.required = false;
@@ -608,7 +608,7 @@ function applyBrandingData(data) {
       elements.footerLogoShield.classList.remove('has-image');
     }
   }
-  
+
   if (data.titleText && elements.navLogoTitle && elements.footerLogoTitle) {
     elements.navLogoTitle.textContent = data.titleText;
     elements.footerLogoTitle.textContent = data.titleText;
@@ -632,7 +632,7 @@ function applyBranding() {
           subtitleText: "Grand Alumni Gallery"
         };
         if (localData) {
-          try { data = JSON.parse(localData); } catch (e) {}
+          try { data = JSON.parse(localData); } catch (e) { }
         }
         db.collection('settings').doc('branding').set(data);
       }
@@ -661,7 +661,7 @@ function loadBrandingInputs() {
   elements.settingsShieldInput.value = data.shieldText || "UP";
   elements.settingsTitleInput.value = data.titleText || "KATITIROK";
   elements.settingsSubtitleInput.value = data.subtitleText || "Grand Alumni Gallery";
-  
+
   if (data.logoImage && elements.settingsLogoPreview) {
     elements.settingsLogoPreview.src = data.logoImage;
     elements.settingsLogoPreview.style.display = 'block';
@@ -674,43 +674,43 @@ function loadBrandingInputs() {
 function handleLogoFileSelect() {
   const file = elements.settingsLogoImageInput.files[0];
   if (!file) return;
-  
+
   if (!file.type.match('image.*')) {
     showToast("Invalid file format. Please select an image.", "error");
     elements.settingsLogoImageInput.value = '';
     return;
   }
-  
+
   if (file.size > 25 * 1024 * 1024) {
     showToast("Logo size too large. Please select an image under 25MB.", "error");
     elements.settingsLogoImageInput.value = '';
     return;
   }
-  
+
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = function (e) {
     // Resize logo to keep local storage lightweight (128px PNG)
     const tempImg = new Image();
-    tempImg.onload = function() {
+    tempImg.onload = function () {
       const canvas = document.createElement('canvas');
       const size = 128;
       canvas.width = size;
       canvas.height = size;
-      
+
       const ctx = canvas.getContext('2d');
       // Fill canvas background with solid white
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(0, 0, size, size);
       ctx.drawImage(tempImg, 0, 0, size, size);
-      
+
       customLogoImageBase64 = canvas.toDataURL('image/png');
-      
+
       // Update preview element in settings tab
       if (elements.settingsLogoPreview) {
         elements.settingsLogoPreview.src = customLogoImageBase64;
         elements.settingsLogoPreview.style.display = 'block';
       }
-      
+
       showToast("New custom logo loaded.", "success");
     };
     tempImg.src = e.target.result;
@@ -721,10 +721,10 @@ function handleLogoFileSelect() {
 function handleClearLogoImage() {
   const confirmClear = confirm("Are you sure you want to remove the custom logo image and revert to the shield initials?");
   if (!confirmClear) return;
-  
+
   const brandingData = { ...state.branding };
   delete brandingData.logoImage;
-  
+
   if (isFirebaseEnabled) {
     db.collection('settings').doc('branding').set(brandingData).then(() => {
       showToast("Custom logo image removed. Reverted to initials.", "info");
@@ -738,7 +738,7 @@ function handleClearLogoImage() {
     applyBrandingLocal();
     showToast("Custom logo image removed. Reverted to initials.", "info");
   }
-  
+
   // Reset input and preview
   elements.settingsLogoImageInput.value = '';
   customLogoImageBase64 = null;
@@ -750,28 +750,28 @@ function handleClearLogoImage() {
 
 function handleBrandingSubmit(e) {
   e.preventDefault();
-  
+
   const shieldVal = elements.settingsShieldInput.value.trim();
   const titleVal = elements.settingsTitleInput.value.trim();
   const subtitleVal = elements.settingsSubtitleInput.value.trim();
-  
+
   if (!shieldVal || !titleVal || !subtitleVal) {
     showToast("All fields are required.", "error");
     return;
   }
-  
+
   let currentLogoImage = state.branding.logoImage;
   if (customLogoImageBase64) {
     currentLogoImage = customLogoImageBase64;
   }
-  
+
   const brandingData = {
     shieldText: shieldVal,
     titleText: titleVal,
     subtitleText: subtitleVal,
     logoImage: currentLogoImage
   };
-  
+
   if (isFirebaseEnabled) {
     db.collection('settings').doc('branding').set(brandingData).then(() => {
       showToast("Branding settings saved successfully! ✨", "success");
@@ -785,7 +785,7 @@ function handleBrandingSubmit(e) {
     applyBrandingLocal();
     showToast("Branding settings saved successfully! ✨", "success");
   }
-  
+
   elements.settingsLogoImageInput.value = '';
   customLogoImageBase64 = null;
   switchAdminTab('approved');
@@ -805,7 +805,7 @@ function openModal(modal) {
 function closeModal(modal) {
   modal.classList.remove('active');
   document.body.style.overflow = '';
-  
+
   // Clear forms if it is the upload modal
   if (modal === elements.uploadModal) {
     elements.uploadForm.reset();
@@ -827,18 +827,18 @@ function closeModal(modal) {
 function showToast(message, type = 'info') {
   const toast = document.createElement('div');
   toast.className = `toast ${type}`;
-  
+
   let icon = 'fa-circle-info';
   if (type === 'success') icon = 'fa-circle-check';
   if (type === 'error') icon = 'fa-triangle-exclamation';
-  
+
   toast.innerHTML = `
     <i class="fa-solid ${icon}"></i>
     <span>${message}</span>
   `;
-  
+
   elements.toastContainer.appendChild(toast);
-  
+
   // Remove toast after animation
   setTimeout(() => {
     toast.style.transform = 'translateY(20px)';
@@ -858,22 +858,22 @@ function renderCarousel() {
 
   // Display top 4 photos in carousel
   const carouselPhotos = approved.slice(-4).reverse();
-  
+
   let trackHTML = '';
   let dotsHTML = '';
-  
+
   carouselPhotos.forEach((photo, index) => {
     const isActive = index === 0 ? 'active' : '';
     const dateObj = new Date(photo.uploadedAt);
     const dateStr = dateObj.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    
+
     trackHTML += `
       <div class="carousel-slide ${isActive}" data-index="${index}">
         <img src="${photo.url}" alt="Carousel Photo ${index + 1}" class="carousel-image">
         <div class="carousel-overlay"></div>
         <div class="carousel-content">
           <span class="carousel-badge">${photo.category}</span>
-          <h1 class="carousel-title">UP Memories</h1>
+          <h1 class="carousel-title">UP - Tacloban Memories</h1>
           <p class="carousel-caption">${photo.caption}</p>
           <button class="btn btn-primary" onclick="openLightbox('${photo.id}')">
             <i class="fa-solid fa-expand"></i> View Details
@@ -881,16 +881,16 @@ function renderCarousel() {
         </div>
       </div>
     `;
-    
+
     dotsHTML += `
       <button class="carousel-dot ${isActive}" data-index="${index}" aria-label="Go to slide ${index + 1}"></button>
     `;
   });
-  
+
   elements.carouselTrack.innerHTML = trackHTML;
   elements.carouselDots.innerHTML = dotsHTML;
   state.currentCarouselIndex = 0;
-  
+
   // Set up dot events
   document.querySelectorAll('.carousel-dot').forEach(dot => {
     dot.addEventListener('click', (e) => {
@@ -904,14 +904,14 @@ function renderCarousel() {
 function setCarouselSlide(index) {
   const slides = document.querySelectorAll('.carousel-slide');
   const dots = document.querySelectorAll('.carousel-dot');
-  
+
   if (slides.length === 0) return;
-  
+
   slides[state.currentCarouselIndex].classList.remove('active');
   dots[state.currentCarouselIndex].classList.remove('active');
-  
+
   state.currentCarouselIndex = index;
-  
+
   slides[state.currentCarouselIndex].classList.add('active');
   dots[state.currentCarouselIndex].classList.add('active');
 }
@@ -919,11 +919,11 @@ function setCarouselSlide(index) {
 function moveCarousel(direction) {
   const slidesCount = document.querySelectorAll('.carousel-slide').length;
   if (slidesCount <= 1) return;
-  
+
   let newIndex = state.currentCarouselIndex + direction;
   if (newIndex >= slidesCount) newIndex = 0;
   if (newIndex < 0) newIndex = slidesCount - 1;
-  
+
   setCarouselSlide(newIndex);
   startCarouselAutoPlay(); // Reset timer
 }
@@ -938,7 +938,7 @@ function startCarouselAutoPlay() {
 // --- GALLERY GRID DISPLAY CODE ---
 function renderGallery() {
   let filtered = state.photos.filter(p => p.approved);
-  
+
   if (state.activeFilter !== 'all') {
     if (state.activeFilter === 'uploads') {
       // Filter for custom items that were uploaded (e.g. not pre-seeded items)
@@ -950,7 +950,7 @@ function renderGallery() {
 
   // Sort: most recent first
   filtered.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-  
+
   if (filtered.length === 0) {
     elements.galleryGrid.innerHTML = `
       <div class="empty-queue-msg" style="grid-column: 1 / -1;">
@@ -961,12 +961,12 @@ function renderGallery() {
     `;
     return;
   }
-  
+
   let gridHTML = '';
   filtered.forEach(photo => {
     const isUserUpload = photo.id.indexOf('seed') === -1;
     const uploadBadge = isUserUpload ? `<span class="upload-badge">Contributor</span>` : '';
-    
+
     gridHTML += `
       <div class="gallery-item" onclick="openLightbox('${photo.id}')">
         ${uploadBadge}
@@ -994,7 +994,7 @@ function renderGallery() {
       </div>
     `;
   });
-  
+
   elements.galleryGrid.innerHTML = gridHTML;
 }
 
@@ -1002,18 +1002,18 @@ function renderGallery() {
 function openLightbox(photoId) {
   const photo = state.photos.find(p => p.id === photoId);
   if (!photo) return;
-  
+
   state.selectedPhoto = photo;
-  
+
   // Populate content
   elements.lightboxImg.src = photo.url;
   elements.lightboxImg.alt = photo.caption;
   elements.lightboxCategory.textContent = photo.category;
-  
+
   const dateObj = new Date(photo.uploadedAt);
   elements.lightboxDate.textContent = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   elements.lightboxCaption.textContent = photo.caption;
-  
+
   // Track Unique Views (Using sessionStorage to check uniqueness in the current browser session)
   const sessionViewKey = `viewed_${photo.id}`;
   if (!sessionStorage.getItem(sessionViewKey)) {
@@ -1031,24 +1031,24 @@ function openLightbox(photoId) {
       if (state.isLoggedIn) updateAdminStats();
     }
   }
-  
+
   elements.lightboxViews.textContent = photo.views;
   updateLightboxLikes(getLikesCount(photo), false);
-  
+
   // Render Comments
   elements.lightboxCommentForm.reset();
   renderComments(photo);
-  
+
   // Prefill commenter name from localStorage
   const savedName = localStorage.getItem('up_gallery_author_name');
   if (savedName && elements.commentAuthorInput) {
     elements.commentAuthorInput.value = savedName;
   }
-  
+
   // Check Likes State
   const hasLiked = hasUserLiked(photo);
   updateLikeBtnState(hasLiked);
-  
+
   openModal(elements.lightboxModal);
 }
 
@@ -1066,12 +1066,12 @@ function updateLikeBtnState(hasLiked) {
 
 function handleLikeToggle() {
   if (!state.selectedPhoto) return;
-  
+
   const photo = state.photos.find(p => p.id === state.selectedPhoto.id);
   const clientId = getClientId();
   const liked = hasUserLiked(photo);
   const likeStorageKey = `liked_${photo.id}`;
-  
+
   if (liked) {
     // Unlike
     if (isFirebaseEnabled) {
@@ -1200,29 +1200,29 @@ function renderComments(photo) {
 
 function handleCommentSubmit(e) {
   e.preventDefault();
-  
+
   if (!state.selectedPhoto) return;
-  
+
   const photo = state.photos.find(p => p.id === state.selectedPhoto.id);
   if (!photo) return;
-  
+
   const author = elements.commentAuthorInput.value.trim();
   const text = elements.commentTextInput.value.trim();
-  
+
   if (!author || !text) {
     showToast("Please enter your name and a comment.", "error");
     return;
   }
-  
+
   const newComment = {
     id: 'comment-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9),
     author: author,
     text: text,
     timestamp: new Date().toISOString()
   };
-  
+
   localStorage.setItem('up_gallery_author_name', author);
-  
+
   if (isFirebaseEnabled) {
     db.collection('photos').doc(photo.id).update({
       comments: firebase.firestore.FieldValue.arrayUnion(newComment)
@@ -1239,7 +1239,7 @@ function handleCommentSubmit(e) {
     }
     photo.comments.push(newComment);
     saveDatabase();
-    
+
     elements.commentTextInput.value = '';
     showToast("Comment added! ❤️", "success");
     renderComments(photo);
@@ -1252,16 +1252,16 @@ function deleteComment(photoId, commentId) {
     showToast("Unauthorized action.", "error");
     return;
   }
-  
+
   const confirmDelete = confirm("Are you sure you want to delete this comment?");
   if (!confirmDelete) return;
-  
+
   const photo = state.photos.find(p => p.id === photoId);
   if (!photo) return;
-  
+
   const comment = photo.comments.find(c => c.id === commentId);
   if (!comment) return;
-  
+
   if (isFirebaseEnabled) {
     db.collection('photos').doc(photoId).update({
       comments: firebase.firestore.FieldValue.arrayRemove(comment)
@@ -1286,28 +1286,28 @@ window.deleteComment = deleteComment;
 function handleFileSelect() {
   const file = elements.fileInput.files[0];
   if (!file) return;
-  
+
   if (!file.type.match('image.*')) {
     showToast("Invalid file format. Please select an image file.", "error");
     return;
   }
-  
+
   if (file.size > 25 * 1024 * 1024) {
     showToast("File size too large. Please upload an image under 25MB.", "error");
     return;
   }
-  
+
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = function (e) {
     const tempImg = new Image();
-    tempImg.onload = function() {
+    tempImg.onload = function () {
       // Resize image client-side to keep base64 local storage optimized
       const canvas = document.createElement('canvas');
       let width = tempImg.width;
       let height = tempImg.height;
-      
+
       const max_size = 1000; // Resize target dimension
-      
+
       if (width > max_size || height > max_size) {
         if (width > height) {
           height *= max_size / width;
@@ -1317,22 +1317,22 @@ function handleFileSelect() {
           height = max_size;
         }
       }
-      
+
       canvas.width = width;
       canvas.height = height;
-      
+
       const ctx = canvas.getContext('2d');
       ctx.drawImage(tempImg, 0, 0, width, height);
-      
+
       // Compress quality to 70% JPEG
       base64ImageString = canvas.toDataURL('image/jpeg', 0.7);
-      
+
       // Update Drag and Drop UI
       elements.previewImg.src = base64ImageString;
       elements.previewImg.style.display = 'block';
       elements.fileDropzone.querySelector('.dropzone-icon').style.display = 'none';
       elements.fileDropzone.querySelectorAll('.dropzone-text').forEach(t => t.style.display = 'none');
-      
+
       showToast("Photo processed and ready for sharing.", "success");
     };
     tempImg.src = e.target.result;
@@ -1342,15 +1342,15 @@ function handleFileSelect() {
 
 function handleUploadSubmit(e) {
   e.preventDefault();
-  
+
   if (!base64ImageString) {
     showToast("Please upload an image.", "error");
     return;
   }
-  
+
   const captionText = elements.uploadCaption.value.trim();
   let categoryVal = elements.uploadCategory.value;
-  
+
   if (categoryVal === 'custom-new') {
     const customVal = elements.customCategoryInput.value.trim();
     if (!customVal) {
@@ -1364,14 +1364,14 @@ function handleUploadSubmit(e) {
       return;
     }
   }
-  
+
   if (!captionText) {
     showToast("Please write a short caption.", "error");
     return;
   }
-  
+
   const photoId = `upload-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-  
+
   function saveLocally() {
     const newPhoto = {
       id: photoId,
@@ -1383,10 +1383,10 @@ function handleUploadSubmit(e) {
       approved: false,
       uploadedAt: new Date().toISOString()
     };
-    
+
     state.photos.push(newPhoto);
     saveDatabase();
-    
+
     closeModal(elements.uploadModal);
     showToast("Memory submitted! It will appear in the gallery once approved by the administrators.", "success");
     syncUI();
@@ -1394,7 +1394,7 @@ function handleUploadSubmit(e) {
 
   if (isFirebaseEnabled) {
     showToast("Submitting memory globally...", "info");
-    
+
     const newPhoto = {
       id: photoId,
       url: base64ImageString, // Save base64 string directly to Firestore
@@ -1405,7 +1405,7 @@ function handleUploadSubmit(e) {
       approved: false,
       uploadedAt: new Date().toISOString()
     };
-    
+
     db.collection('photos').doc(photoId).set(newPhoto).then(() => {
       closeModal(elements.uploadModal);
       showToast("Memory submitted! It will appear in the gallery once approved by the administrators.", "success");
@@ -1435,10 +1435,10 @@ function showAdminDashboard() {
 
 function handleAdminLogin(e) {
   e.preventDefault();
-  
+
   const username = elements.adminUsername.value.trim();
   const password = elements.adminPassword.value.trim();
-  
+
   if (username === 'admin' && password === 'admin') {
     state.isLoggedIn = true;
     sessionStorage.setItem('admin_logged', 'true');
@@ -1461,7 +1461,7 @@ function updateAdminStats() {
   const approved = state.photos.filter(p => p.approved);
   const totalLikes = approved.reduce((sum, p) => sum + getLikesCount(p), 0);
   const totalViews = approved.reduce((sum, p) => sum + p.views, 0);
-  
+
   elements.statTotalPhotos.textContent = approved.length;
   elements.statTotalLikes.textContent = totalLikes;
   elements.statTotalViews.textContent = totalViews;
@@ -1474,12 +1474,12 @@ function updatePendingCountBadge() {
 
 function switchAdminTab(tab) {
   state.adminTab = tab;
-  
+
   // Reset active tabs
   elements.tabPendingBtn.classList.remove('active');
   elements.tabApprovedBtn.classList.remove('active');
   elements.tabSettingsBtn.classList.remove('active');
-  
+
   if (tab === 'pending') {
     elements.tabPendingBtn.classList.add('active');
     elements.adminQueueList.style.display = 'grid';
@@ -1500,16 +1500,16 @@ function switchAdminTab(tab) {
 
 function renderAdminQueue() {
   let filtered = [];
-  
+
   if (state.adminTab === 'pending') {
     filtered = state.photos.filter(p => !p.approved);
   } else {
     filtered = state.photos.filter(p => p.approved);
   }
-  
+
   // Sort most recent uploads first
   filtered.sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt));
-  
+
   if (filtered.length === 0) {
     const icon = state.adminTab === 'pending' ? 'fa-circle-check' : 'fa-image';
     const text = state.adminTab === 'pending' ? 'All clear! No pending photo uploads.' : 'No active memories in the gallery.';
@@ -1521,12 +1521,12 @@ function renderAdminQueue() {
     `;
     return;
   }
-  
+
   let queueHTML = '';
   filtered.forEach(photo => {
     const dateObj = new Date(photo.uploadedAt);
     const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-    
+
     let actionButtons = '';
     if (state.adminTab === 'pending') {
       actionButtons = `
@@ -1544,7 +1544,7 @@ function renderAdminQueue() {
         </button>
       `;
     }
-    
+
     queueHTML += `
       <div class="mod-card">
         <div class="mod-img-container" onclick="openLightbox('${photo.id}')" title="Click to view details and comments">
@@ -1570,7 +1570,7 @@ function renderAdminQueue() {
       </div>
     `;
   });
-  
+
   elements.adminQueueList.innerHTML = queueHTML;
 }
 
@@ -1578,7 +1578,7 @@ function renderAdminQueue() {
 function approvePhoto(photoId) {
   const photo = state.photos.find(p => p.id === photoId);
   if (!photo) return;
-  
+
   if (isFirebaseEnabled) {
     db.collection('photos').doc(photoId).update({
       approved: true
@@ -1600,10 +1600,10 @@ window.approvePhoto = approvePhoto;
 function declinePhoto(photoId) {
   const confirmDecline = confirm("Are you sure you want to decline and permanently delete this uploaded photo?");
   if (!confirmDecline) return;
-  
+
   const photo = state.photos.find(p => p.id === photoId);
   if (!photo) return;
-  
+
   if (isFirebaseEnabled) {
     const deleteDoc = () => db.collection('photos').doc(photoId).delete().then(() => {
       showToast("Photo submission declined.", "info");
@@ -1611,7 +1611,7 @@ function declinePhoto(photoId) {
       console.error(err);
       showToast("Failed to delete document.", "error");
     });
-    
+
     if (photo.storagePath) {
       storage.ref().child(photo.storagePath).delete()
         .then(deleteDoc)
@@ -1634,10 +1634,10 @@ window.declinePhoto = declinePhoto;
 function deletePhotoFromGallery(photoId) {
   const confirmDelete = confirm("Are you sure you want to delete this memory from the gallery?");
   if (!confirmDelete) return;
-  
+
   const photo = state.photos.find(p => p.id === photoId);
   if (!photo) return;
-  
+
   if (isFirebaseEnabled) {
     const deleteDoc = () => db.collection('photos').doc(photoId).delete().then(() => {
       showToast("Photo removed from gallery.", "info");
@@ -1645,7 +1645,7 @@ function deletePhotoFromGallery(photoId) {
       console.error(err);
       showToast("Failed to remove from gallery.", "error");
     });
-    
+
     if (photo.storagePath) {
       storage.ref().child(photo.storagePath).delete()
         .then(deleteDoc)
@@ -1668,7 +1668,7 @@ window.deletePhotoFromGallery = deletePhotoFromGallery;
 function editCaption(photoId) {
   const photo = state.photos.find(p => p.id === photoId);
   if (!photo) return;
-  
+
   state.editingPhotoId = photoId;
   elements.editPhotoCaption.value = photo.caption;
   openModal(elements.editCaptionModal);
@@ -1677,15 +1677,15 @@ window.editCaption = editCaption;
 
 function handleEditCaptionSubmit(e) {
   e.preventDefault();
-  
+
   if (!state.editingPhotoId) return;
-  
+
   const trimmed = elements.editPhotoCaption.value.trim();
   if (!trimmed) {
     showToast("Caption cannot be empty.", "error");
     return;
   }
-  
+
   if (isFirebaseEnabled) {
     db.collection('photos').doc(state.editingPhotoId).update({
       caption: trimmed
