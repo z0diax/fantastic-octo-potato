@@ -301,7 +301,7 @@ function loadDatabase() {
             if (updated) {
               state.selectedPhoto = updated;
               elements.lightboxViews.textContent = updated.views;
-              elements.lightboxLikes.textContent = updated.likes;
+              elements.lightboxLikes.textContent = getLikesCount(updated);
             }
           }
           
