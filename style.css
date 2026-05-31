@@ -599,6 +599,7 @@ header {
   visibility: visible;
 }
 
+/* Desktop Modal Wrapper dimensions */
 .modal-wrapper {
   background: var(--bg-surface);
   border: 1px solid rgba(212, 175, 55, 0.2);
@@ -606,6 +607,8 @@ header {
   border-radius: 16px;
   width: 100%;
   max-width: 1100px;
+  height: 80vh;
+  min-height: 650px;
   max-height: 85vh;
   overflow: hidden;
   position: relative;
@@ -664,8 +667,8 @@ header {
   padding: 2.5rem;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  overflow-y: auto;
+  overflow: hidden;
+  height: 100%;
   border-left: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -1610,12 +1613,16 @@ footer {
   .modal-wrapper {
     grid-template-columns: 1fr;
     max-height: 90vh;
+    height: auto;
+    min-height: auto;
     overflow-y: auto;
   }
   .lightbox-info-pane {
     padding: 1.8rem;
     border-left: none;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
+    height: auto;
+    overflow: visible;
   }
   .lightbox-img-pane {
     min-height: 250px;
