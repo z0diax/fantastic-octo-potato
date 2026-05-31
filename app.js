@@ -91,7 +91,8 @@ let state = {
   activeFilter: 'all',
   adminTab: 'pending', // 'pending' or 'approved'
   isLoggedIn: false,
-  selectedPhoto: null
+  selectedPhoto: null,
+  editingPhotoId: null
 };
 
 // --- DOM ELEMENTS ---
@@ -138,6 +139,13 @@ const elements = {
   uploadCategory: document.getElementById('upload-category'),
   customCategoryGroup: document.getElementById('custom-category-group'),
   customCategoryInput: document.getElementById('upload-custom-category'),
+  
+  // Edit Caption Modal
+  editCaptionModal: document.getElementById('edit-caption-modal'),
+  closeEditCaptionBtn: document.getElementById('close-edit-caption-btn'),
+  cancelEditCaptionBtn: document.getElementById('cancel-edit-caption-btn'),
+  editCaptionForm: document.getElementById('edit-caption-form'),
+  editPhotoCaption: document.getElementById('edit-photo-caption'),
   
   // Admin Login
   adminLoginCard: document.getElementById('admin-login-card'),
@@ -357,11 +365,14 @@ function initEventListeners() {
   elements.closeUploadBtn.addEventListener('click', () => closeModal(elements.uploadModal));
   elements.cancelUploadBtn.addEventListener('click', () => closeModal(elements.uploadModal));
   elements.closeLightboxBtn.addEventListener('click', () => closeModal(elements.lightboxModal));
+  elements.closeEditCaptionBtn.addEventListener('click', () => closeModal(elements.editCaptionModal));
+  elements.cancelEditCaptionBtn.addEventListener('click', () => closeModal(elements.editCaptionModal));
   
   // Close modals clicking outside
   window.addEventListener('click', (e) => {
     if (e.target === elements.uploadModal) closeModal(elements.uploadModal);
     if (e.target === elements.lightboxModal) closeModal(elements.lightboxModal);
+    if (e.target === elements.editCaptionModal) closeModal(elements.editCaptionModal);
   });
   
   // Carousel Buttons
@@ -415,6 +426,7 @@ function initEventListeners() {
   });
   
   elements.uploadForm.addEventListener('submit', handleUploadSubmit);
+  elements.editCaptionForm.addEventListener('submit', handleEditCaptionSubmit);
   
   // Admin Interactions
   elements.adminLoginForm.addEventListener('submit', handleAdminLogin);
@@ -725,6 +737,9 @@ function closeModal(modal) {
     elements.customCategoryInput.value = '';
     elements.customCategoryInput.required = false;
     base64ImageString = null;
+  } else if (modal === elements.editCaptionModal) {
+    elements.editCaptionForm.reset();
+    state.editingPhotoId = null;
   }
 }
 
@@ -1396,32 +1411,45 @@ function editCaption(photoId) {
   const photo = state.photos.find(p => p.id === photoId);
   if (!photo) return;
   
-  const newCaption = prompt("Edit caption:", photo.caption);
-  if (newCaption === null) return; // Cancelled
+  state.editingPhotoId = photoId;
+  elements.editPhotoCaption.value = photo.caption;
+  openModal(elements.editCaptionModal);
+}
+window.editCaption = editCaption;
+
+function handleEditCaptionSubmit(e) {
+  e.preventDefault();
   
-  const trimmed = newCaption.trim();
+  if (!state.editingPhotoId) return;
+  
+  const trimmed = elements.editPhotoCaption.value.trim();
   if (!trimmed) {
     showToast("Caption cannot be empty.", "error");
     return;
   }
   
   if (isFirebaseEnabled) {
-    db.collection('photos').doc(photoId).update({
+    db.collection('photos').doc(state.editingPhotoId).update({
       caption: trimmed
     }).then(() => {
       showToast("Caption updated successfully!", "success");
+      closeModal(elements.editCaptionModal);
     }).catch(err => {
       console.error(err);
       showToast("Failed to update caption.", "error");
     });
   } else {
-    photo.caption = trimmed;
-    saveDatabase();
-    showToast("Caption updated successfully!", "success");
-    syncUI();
+    const photo = state.photos.find(p => p.id === state.editingPhotoId);
+    if (photo) {
+      photo.caption = trimmed;
+      saveDatabase();
+      showToast("Caption updated successfully!", "success");
+      syncUI();
+    }
+    closeModal(elements.editCaptionModal);
   }
 }
-window.editCaption = editCaption;
+window.handleEditCaptionSubmit = handleEditCaptionSubmit;
 
 // --- EXECUTE ON WINDOW LOAD ---
 window.addEventListener('DOMContentLoaded', initApp);

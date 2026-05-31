@@ -308,6 +308,35 @@
   </div>
 
 
+  <!-- EDIT CAPTION MODAL -->
+  <div class="modal-overlay" id="edit-caption-modal">
+    <div class="modal-wrapper upload-modal-wrapper" style="max-width: 550px;">
+      <button class="modal-close-btn" id="close-edit-caption-btn" aria-label="Close edit form">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <h2 class="upload-title">Edit Photo Caption</h2>
+      <p class="upload-subtitle">Update the description or story details for this memory.</p>
+
+      <form id="edit-caption-form">
+        <!-- Caption Input -->
+        <div class="form-group">
+          <label class="form-label" for="edit-photo-caption">Caption / Story</label>
+          <textarea class="form-control" id="edit-photo-caption" required
+            placeholder="Share details about the photo (e.g. batch year, event details, names of people, emotions)..." style="min-height: 150px;"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" id="cancel-edit-caption-btn">Cancel</button>
+          <button type="submit" class="btn btn-accent" id="save-edit-caption-btn">
+            <i class="fa-solid fa-floppy-disk"></i> Save Changes
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toast-container"></div>
 
