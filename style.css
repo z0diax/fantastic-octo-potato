@@ -789,13 +789,24 @@ header {
 
 .comment-author {
   font-weight: 600;
-  color: white;
+  color: var(--up-gold) !important;
   font-size: 0.82rem;
 }
 
 .comment-time {
-  font-size: 0.7rem;
-  color: var(--text-muted);
+  font-size: 0.70rem;
+  color: rgba(255, 255, 255, 0.45) !important;
+}
+
+/* Webkit autofill overrides to preserve dark glassmorphism theme background */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: white !important;
+  transition: background-color 5000s ease-in-out 0s;
+  box-shadow: inset 0 0 20px 20px rgba(20, 15, 16, 0.95);
 }
 
 .comment-text {

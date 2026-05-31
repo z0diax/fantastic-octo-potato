@@ -1151,15 +1151,20 @@ function renderComments(photo) {
 
   let html = '';
   comments.forEach(comment => {
+    let dateStr = '';
     const dateObj = new Date(comment.timestamp);
-    const dateStr = dateObj.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
+    if (!isNaN(dateObj.getTime())) {
+      dateStr = dateObj.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      });
+    } else {
+      dateStr = 'Recently';
+    }
 
     let deleteBtn = '';
     if (state.isLoggedIn) {
