@@ -44,9 +44,38 @@ const DEFAULT_PHOTOS = [
   }
 ];
 
+// --- FIREBASE DUAL-MODE DETECTION ---
+let isFirebaseEnabled = false;
+let db = null;
+let storage = null;
+
+if (typeof firebaseConfig !== 'undefined' && 
+    firebaseConfig.apiKey && 
+    firebaseConfig.apiKey !== "YOUR_API_KEY" &&
+    firebaseConfig.projectId && 
+    firebaseConfig.projectId !== "YOUR_PROJECT_ID") {
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    storage = firebase.storage();
+    isFirebaseEnabled = true;
+    console.log("Firebase Sync Mode Active! 🔥");
+  } catch (err) {
+    console.error("Firebase failed to initialize. Falling back to Local Demo Mode.", err);
+  }
+} else {
+  console.log("Local Demo Mode Active (No Firebase config detected). 💾");
+}
+
 // --- APP STATE ---
 let state = {
   photos: [],
+  branding: {
+    shieldText: "UP",
+    titleText: "KATITIROK",
+    subtitleText: "Grand Alumni Gallery",
+    logoImage: null
+  },
   currentCarouselIndex: 0,
   carouselTimer: null,
   activeFilter: 'all',
@@ -149,11 +178,7 @@ function initApp() {
   loadDatabase();
   applyBranding();
   initEventListeners();
-  renderCarousel();
-  renderFilters();
-  renderGallery();
   startCarouselAutoPlay();
-  updatePendingCountBadge();
   
   // Check session login state
   if (sessionStorage.getItem('admin_logged') === 'true') {
@@ -162,26 +187,76 @@ function initApp() {
   }
 }
 
-// --- DATABASE HANDLERS (LOCALSTORAGE) ---
+// --- UI SYNC ---
+function syncUI() {
+  renderCarousel();
+  renderFilters();
+  renderGallery();
+  updatePendingCountBadge();
+  if (state.isLoggedIn) {
+    updateAdminStats();
+    renderAdminQueue();
+  }
+}
+
+// --- DATABASE HANDLERS (FIREBASE & LOCALSTORAGE) ---
 function loadDatabase() {
-  const localData = localStorage.getItem('up_katitirok_photos');
-  if (localData) {
-    try {
-      state.photos = JSON.parse(localData);
-    } catch (e) {
-      console.error("Failed to parse local storage photos. Seeding instead.", e);
+  if (isFirebaseEnabled) {
+    db.collection('photos').onSnapshot((snapshot) => {
+      const fbPhotos = [];
+      snapshot.forEach(doc => {
+        fbPhotos.push({ id: doc.id, ...doc.data() });
+      });
+      
+      // Seed if Firestore is empty
+      if (fbPhotos.length === 0) {
+        console.log("Firestore empty. Seeding DEFAULT_PHOTOS...");
+        DEFAULT_PHOTOS.forEach(photo => {
+          db.collection('photos').doc(photo.id).set(photo);
+        });
+      } else {
+        state.photos = fbPhotos;
+        
+        // Reactive details modal updates if open
+        if (state.selectedPhoto) {
+          const updated = fbPhotos.find(p => p.id === state.selectedPhoto.id);
+          if (updated) {
+            state.selectedPhoto = updated;
+            elements.lightboxViews.textContent = updated.views;
+            elements.lightboxLikes.textContent = updated.likes;
+          }
+        }
+        
+        syncUI();
+      }
+    }, (error) => {
+      console.error("Firestore onSnapshot error, falling back to local storage.", error);
+      isFirebaseEnabled = false;
+      loadDatabase();
+    });
+  } else {
+    const localData = localStorage.getItem('up_katitirok_photos');
+    if (localData) {
+      try {
+        state.photos = JSON.parse(localData);
+      } catch (e) {
+        console.error("Failed to parse local storage photos. Seeding instead.", e);
+        state.photos = [...DEFAULT_PHOTOS];
+        saveDatabase();
+      }
+    } else {
       state.photos = [...DEFAULT_PHOTOS];
       saveDatabase();
     }
-  } else {
-    state.photos = [...DEFAULT_PHOTOS];
-    saveDatabase();
+    syncUI();
   }
 }
 
 function saveDatabase() {
-  localStorage.setItem('up_katitirok_photos', JSON.stringify(state.photos));
-  updatePendingCountBadge();
+  if (!isFirebaseEnabled) {
+    localStorage.setItem('up_katitirok_photos', JSON.stringify(state.photos));
+    updatePendingCountBadge();
+  }
 }
 
 // --- EVENT LISTENERS ---
@@ -363,34 +438,65 @@ function renderUploadCategories() {
 // --- APP BRANDING SETTINGS ---
 let customLogoImageBase64 = null;
 
+function applyBrandingData(data) {
+  state.branding = data;
+  if (data.logoImage && elements.navLogoShield && elements.footerLogoShield) {
+    const imgNav = `<img src="${data.logoImage}" alt="Logo" class="logo-shield-image">`;
+    const imgFooter = `<img src="${data.logoImage}" alt="Logo" class="logo-shield-image">`;
+    elements.navLogoShield.innerHTML = imgNav;
+    elements.footerLogoShield.innerHTML = imgFooter;
+    elements.navLogoShield.classList.add('has-image');
+    elements.footerLogoShield.classList.add('has-image');
+  } else {
+    if (data.shieldText && elements.navLogoShield && elements.footerLogoShield) {
+      elements.navLogoShield.textContent = data.shieldText;
+      elements.footerLogoShield.textContent = data.shieldText;
+      elements.navLogoShield.classList.remove('has-image');
+      elements.footerLogoShield.classList.remove('has-image');
+    }
+  }
+  
+  if (data.titleText && elements.navLogoTitle && elements.footerLogoTitle) {
+    elements.navLogoTitle.textContent = data.titleText;
+    elements.footerLogoTitle.textContent = data.titleText;
+  }
+  if (data.subtitleText && elements.navLogoSubtitle && elements.footerLogoSubtitle) {
+    elements.navLogoSubtitle.textContent = data.subtitleText;
+    elements.footerLogoSubtitle.textContent = data.subtitleText;
+  }
+}
+
 function applyBranding() {
+  if (isFirebaseEnabled) {
+    db.collection('settings').doc('branding').onSnapshot((doc) => {
+      if (doc.exists) {
+        applyBrandingData(doc.data());
+      } else {
+        const localData = localStorage.getItem('up_katitirok_branding');
+        let data = {
+          shieldText: "UP",
+          titleText: "KATITIROK",
+          subtitleText: "Grand Alumni Gallery"
+        };
+        if (localData) {
+          try { data = JSON.parse(localData); } catch (e) {}
+        }
+        db.collection('settings').doc('branding').set(data);
+      }
+    }, (err) => {
+      console.error("Firestore branding settings error, falling back to local.", err);
+      applyBrandingLocal();
+    });
+  } else {
+    applyBrandingLocal();
+  }
+}
+
+function applyBrandingLocal() {
   const branding = localStorage.getItem('up_katitirok_branding');
   if (branding) {
     try {
-      const data = JSON.parse(branding);
-      
-      // Handle custom logo image
-      if (data.logoImage && elements.navLogoShield && elements.footerLogoShield) {
-        const imgNav = `<img src="${data.logoImage}" alt="Logo" class="logo-shield-image">`;
-        const imgFooter = `<img src="${data.logoImage}" alt="Logo" class="logo-shield-image">`;
-        elements.navLogoShield.innerHTML = imgNav;
-        elements.footerLogoShield.innerHTML = imgFooter;
-      } else {
-        // Fallback to initials
-        if (data.shieldText && elements.navLogoShield && elements.footerLogoShield) {
-          elements.navLogoShield.textContent = data.shieldText;
-          elements.footerLogoShield.textContent = data.shieldText;
-        }
-      }
-      
-      if (data.titleText && elements.navLogoTitle && elements.footerLogoTitle) {
-        elements.navLogoTitle.textContent = data.titleText;
-        elements.footerLogoTitle.textContent = data.titleText;
-      }
-      if (data.subtitleText && elements.navLogoSubtitle && elements.footerLogoSubtitle) {
-        elements.navLogoSubtitle.textContent = data.subtitleText;
-        elements.footerLogoSubtitle.textContent = data.subtitleText;
-      }
+      applyBrandingData(JSON.parse(branding));
     } catch (e) {
       console.error("Failed to parse branding settings.", e);
     }
@@ -398,29 +504,13 @@ function applyBranding() {
 }
 
 function loadBrandingInputs() {
-  const branding = localStorage.getItem('up_katitirok_branding');
-  let shieldVal = "UP";
-  let titleVal = "KATITIROK";
-  let subtitleVal = "Grand Alumni Gallery";
-  let logoImage = null;
+  const data = state.branding;
+  elements.settingsShieldInput.value = data.shieldText || "UP";
+  elements.settingsTitleInput.value = data.titleText || "KATITIROK";
+  elements.settingsSubtitleInput.value = data.subtitleText || "Grand Alumni Gallery";
   
-  if (branding) {
-    try {
-      const data = JSON.parse(branding);
-      shieldVal = data.shieldText || "UP";
-      titleVal = data.titleText || "KATITIROK";
-      subtitleVal = data.subtitleText || "Grand Alumni Gallery";
-      logoImage = data.logoImage || null;
-    } catch (e) {}
-  }
-  
-  elements.settingsShieldInput.value = shieldVal;
-  elements.settingsTitleInput.value = titleVal;
-  elements.settingsSubtitleInput.value = subtitleVal;
-  
-  // Show image preview in settings if configured
-  if (logoImage && elements.settingsLogoPreview) {
-    elements.settingsLogoPreview.src = logoImage;
+  if (data.logoImage && elements.settingsLogoPreview) {
+    elements.settingsLogoPreview.src = data.logoImage;
     elements.settingsLogoPreview.style.display = 'block';
   } else if (elements.settingsLogoPreview) {
     elements.settingsLogoPreview.style.display = 'none';
@@ -479,21 +569,22 @@ function handleClearLogoImage() {
   const confirmClear = confirm("Are you sure you want to remove the custom logo image and revert to the shield initials?");
   if (!confirmClear) return;
   
-  const existingBranding = localStorage.getItem('up_katitirok_branding');
-  let brandingData = {
-    shieldText: "UP",
-    titleText: "KATITIROK",
-    subtitleText: "Grand Alumni Gallery"
-  };
-  
-  if (existingBranding) {
-    try {
-      brandingData = JSON.parse(existingBranding);
-    } catch (err) {}
-  }
-  
+  const brandingData = { ...state.branding };
   delete brandingData.logoImage;
-  localStorage.setItem('up_katitirok_branding', JSON.stringify(brandingData));
+  
+  if (isFirebaseEnabled) {
+    db.collection('settings').doc('branding').set(brandingData).then(() => {
+      showToast("Custom logo image removed. Reverted to initials.", "info");
+    }).catch(err => {
+      console.error(err);
+      showToast("Failed to clear logo image.", "error");
+    });
+  } else {
+    localStorage.setItem('up_katitirok_branding', JSON.stringify(brandingData));
+    state.branding = brandingData;
+    applyBrandingLocal();
+    showToast("Custom logo image removed. Reverted to initials.", "info");
+  }
   
   // Reset input and preview
   elements.settingsLogoImageInput.value = '';
@@ -502,9 +593,6 @@ function handleClearLogoImage() {
     elements.settingsLogoPreview.style.display = 'none';
     elements.settingsLogoPreview.src = '';
   }
-  
-  applyBranding();
-  showToast("Custom logo image removed. Reverted to initials.", "info");
 }
 
 function handleBrandingSubmit(e) {
@@ -519,15 +607,7 @@ function handleBrandingSubmit(e) {
     return;
   }
   
-  const existingBranding = localStorage.getItem('up_katitirok_branding');
-  let currentLogoImage = null;
-  if (existingBranding) {
-    try {
-      const parsed = JSON.parse(existingBranding);
-      currentLogoImage = parsed.logoImage;
-    } catch (err) {}
-  }
-  
+  let currentLogoImage = state.branding.logoImage;
   if (customLogoImageBase64) {
     currentLogoImage = customLogoImageBase64;
   }
@@ -539,14 +619,22 @@ function handleBrandingSubmit(e) {
     logoImage: currentLogoImage
   };
   
-  localStorage.setItem('up_katitirok_branding', JSON.stringify(brandingData));
-  applyBranding();
-  
-  showToast("Branding settings saved successfully! ✨", "success");
+  if (isFirebaseEnabled) {
+    db.collection('settings').doc('branding').set(brandingData).then(() => {
+      showToast("Branding settings saved successfully! ✨", "success");
+    }).catch(err => {
+      console.error(err);
+      showToast("Failed to save branding settings.", "error");
+    });
+  } else {
+    localStorage.setItem('up_katitirok_branding', JSON.stringify(brandingData));
+    state.branding = brandingData;
+    applyBrandingLocal();
+    showToast("Branding settings saved successfully! ✨", "success");
+  }
   
   elements.settingsLogoImageInput.value = '';
   customLogoImageBase64 = null;
-  
   switchAdminTab('approved');
 }
 
@@ -770,13 +858,19 @@ function openLightbox(photoId) {
   // Track Unique Views (Using sessionStorage to check uniqueness in the current browser session)
   const sessionViewKey = `viewed_${photo.id}`;
   if (!sessionStorage.getItem(sessionViewKey)) {
-    photo.views += 1;
-    saveDatabase();
-    sessionStorage.setItem(sessionViewKey, 'true');
-    renderGallery(); // Refresh views count on gallery grid
-    
-    // Sync admin views stat card if active
-    if (state.isLoggedIn) updateAdminStats();
+    if (isFirebaseEnabled) {
+      db.collection('photos').doc(photo.id).update({
+        views: firebase.firestore.FieldValue.increment(1)
+      }).then(() => {
+        sessionStorage.setItem(sessionViewKey, 'true');
+      }).catch(err => console.error(err));
+    } else {
+      photo.views += 1;
+      saveDatabase();
+      sessionStorage.setItem(sessionViewKey, 'true');
+      renderGallery();
+      if (state.isLoggedIn) updateAdminStats();
+    }
   }
   
   elements.lightboxViews.textContent = photo.views;
@@ -811,24 +905,45 @@ function handleLikeToggle() {
   
   if (hasLiked) {
     // Unlike
-    photo.likes = Math.max(0, photo.likes - 1);
-    localStorage.removeItem(likeStorageKey);
-    showToast("Memory unliked.", "info");
-    updateLikeBtnState(false);
+    if (isFirebaseEnabled) {
+      db.collection('photos').doc(photo.id).update({
+        likes: firebase.firestore.FieldValue.increment(-1)
+      }).then(() => {
+        localStorage.removeItem(likeStorageKey);
+        showToast("Memory unliked.", "info");
+        updateLikeBtnState(false);
+      }).catch(err => console.error(err));
+    } else {
+      photo.likes = Math.max(0, photo.likes - 1);
+      localStorage.removeItem(likeStorageKey);
+      showToast("Memory unliked.", "info");
+      updateLikeBtnState(false);
+      saveDatabase();
+      elements.lightboxLikes.textContent = photo.likes;
+      renderGallery();
+      if (state.isLoggedIn) updateAdminStats();
+    }
   } else {
     // Like
-    photo.likes += 1;
-    localStorage.setItem(likeStorageKey, 'true');
-    showToast("You liked this memory! ❤️", "success");
-    updateLikeBtnState(true);
+    if (isFirebaseEnabled) {
+      db.collection('photos').doc(photo.id).update({
+        likes: firebase.firestore.FieldValue.increment(1)
+      }).then(() => {
+        localStorage.setItem(likeStorageKey, 'true');
+        showToast("You liked this memory! ❤️", "success");
+        updateLikeBtnState(true);
+      }).catch(err => console.error(err));
+    } else {
+      photo.likes += 1;
+      localStorage.setItem(likeStorageKey, 'true');
+      showToast("You liked this memory! ❤️", "success");
+      updateLikeBtnState(true);
+      saveDatabase();
+      elements.lightboxLikes.textContent = photo.likes;
+      renderGallery();
+      if (state.isLoggedIn) updateAdminStats();
+    }
   }
-  
-  saveDatabase();
-  elements.lightboxLikes.textContent = photo.likes;
-  renderGallery(); // Update count on grid
-  
-  // Update stats if in Admin view
-  if (state.isLoggedIn) updateAdminStats();
 }
 
 // --- PHOTO UPLOADING FLOW ---
@@ -920,27 +1035,53 @@ function handleUploadSubmit(e) {
     return;
   }
   
-  const newPhoto = {
-    id: `upload-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-    url: base64ImageString,
-    caption: captionText,
-    category: categoryVal,
-    likes: 0,
-    views: 0,
-    approved: false, // Requires admin moderation
-    uploadedAt: new Date().toISOString()
-  };
+  const photoId = `upload-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
   
-  state.photos.push(newPhoto);
-  saveDatabase();
-  
-  closeModal(elements.uploadModal);
-  showToast("Memory submitted! It will appear in the gallery once approved by the administrators.", "success");
-  
-  // If admin is active, redraw the admin queues
-  if (state.isLoggedIn) {
-    renderAdminQueue();
-    updateAdminStats();
+  if (isFirebaseEnabled) {
+    showToast("Uploading and compressing image globally...", "info");
+    const filename = `photos/${Date.now()}-${Math.floor(Math.random() * 1000)}.jpg`;
+    const fileRef = storage.ref().child(filename);
+    
+    fileRef.putString(base64ImageString, 'data_url').then((snapshot) => {
+      return snapshot.ref.getDownloadURL();
+    }).then((downloadURL) => {
+      const newPhoto = {
+        id: photoId,
+        url: downloadURL,
+        storagePath: filename,
+        caption: captionText,
+        category: categoryVal,
+        likes: 0,
+        views: 0,
+        approved: false,
+        uploadedAt: new Date().toISOString()
+      };
+      return db.collection('photos').doc(photoId).set(newPhoto);
+    }).then(() => {
+      closeModal(elements.uploadModal);
+      showToast("Memory submitted! It will appear in the gallery once approved by the administrators.", "success");
+    }).catch((err) => {
+      console.error("Upload failed", err);
+      showToast("Global upload failed. Please try again.", "error");
+    });
+  } else {
+    const newPhoto = {
+      id: photoId,
+      url: base64ImageString,
+      caption: captionText,
+      category: categoryVal,
+      likes: 0,
+      views: 0,
+      approved: false,
+      uploadedAt: new Date().toISOString()
+    };
+    
+    state.photos.push(newPhoto);
+    saveDatabase();
+    
+    closeModal(elements.uploadModal);
+    showToast("Memory submitted! It will appear in the gallery once approved by the administrators.", "success");
+    syncUI();
   }
 }
 
@@ -1101,15 +1242,21 @@ function approvePhoto(photoId) {
   const photo = state.photos.find(p => p.id === photoId);
   if (!photo) return;
   
-  photo.approved = true;
-  saveDatabase();
-  
-  showToast("Photo approved and published to gallery!", "success");
-  renderFilters();
-  renderAdminQueue();
-  updateAdminStats();
-  renderGallery();
-  renderCarousel(); // Update carousel if needed
+  if (isFirebaseEnabled) {
+    db.collection('photos').doc(photoId).update({
+      approved: true
+    }).then(() => {
+      showToast("Photo approved and published to gallery!", "success");
+    }).catch(err => {
+      console.error(err);
+      showToast("Failed to approve photo.", "error");
+    });
+  } else {
+    photo.approved = true;
+    saveDatabase();
+    showToast("Photo approved and published to gallery!", "success");
+    syncUI();
+  }
 }
 window.approvePhoto = approvePhoto;
 
@@ -1117,14 +1264,33 @@ function declinePhoto(photoId) {
   const confirmDecline = confirm("Are you sure you want to decline and permanently delete this uploaded photo?");
   if (!confirmDecline) return;
   
-  state.photos = state.photos.filter(p => p.id !== photoId);
-  saveDatabase();
+  const photo = state.photos.find(p => p.id === photoId);
+  if (!photo) return;
   
-  showToast("Photo submission declined.", "info");
-  renderFilters();
-  renderAdminQueue();
-  updateAdminStats();
-  renderGallery();
+  if (isFirebaseEnabled) {
+    const deleteDoc = () => db.collection('photos').doc(photoId).delete().then(() => {
+      showToast("Photo submission declined.", "info");
+    }).catch(err => {
+      console.error(err);
+      showToast("Failed to delete document.", "error");
+    });
+    
+    if (photo.storagePath) {
+      storage.ref().child(photo.storagePath).delete()
+        .then(deleteDoc)
+        .catch(err => {
+          console.error("Storage delete failed, deleting doc anyway.", err);
+          deleteDoc();
+        });
+    } else {
+      deleteDoc();
+    }
+  } else {
+    state.photos = state.photos.filter(p => p.id !== photoId);
+    saveDatabase();
+    showToast("Photo submission declined.", "info");
+    syncUI();
+  }
 }
 window.declinePhoto = declinePhoto;
 
@@ -1132,17 +1298,33 @@ function deletePhotoFromGallery(photoId) {
   const confirmDelete = confirm("Are you sure you want to delete this memory from the gallery?");
   if (!confirmDelete) return;
   
-  // If it's a seed photo, we can just toggle approved back to false or delete it. Let's delete it or mark approved: false.
-  // Deleting it is clean!
-  state.photos = state.photos.filter(p => p.id !== photoId);
-  saveDatabase();
+  const photo = state.photos.find(p => p.id === photoId);
+  if (!photo) return;
   
-  showToast("Photo removed from gallery.", "info");
-  renderFilters();
-  renderAdminQueue();
-  updateAdminStats();
-  renderGallery();
-  renderCarousel();
+  if (isFirebaseEnabled) {
+    const deleteDoc = () => db.collection('photos').doc(photoId).delete().then(() => {
+      showToast("Photo removed from gallery.", "info");
+    }).catch(err => {
+      console.error(err);
+      showToast("Failed to remove from gallery.", "error");
+    });
+    
+    if (photo.storagePath) {
+      storage.ref().child(photo.storagePath).delete()
+        .then(deleteDoc)
+        .catch(err => {
+          console.error("Storage delete failed, deleting doc anyway.", err);
+          deleteDoc();
+        });
+    } else {
+      deleteDoc();
+    }
+  } else {
+    state.photos = state.photos.filter(p => p.id !== photoId);
+    saveDatabase();
+    showToast("Photo removed from gallery.", "info");
+    syncUI();
+  }
 }
 window.deletePhotoFromGallery = deletePhotoFromGallery;
 
