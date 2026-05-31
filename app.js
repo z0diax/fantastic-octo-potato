@@ -340,6 +340,7 @@ function loadDatabase() {
               state.selectedPhoto = updated;
               elements.lightboxViews.textContent = updated.views;
               updateLightboxLikes(getLikesCount(updated));
+              renderComments(updated);
             }
           }
           
@@ -1031,6 +1032,10 @@ function openLightbox(photoId) {
   elements.lightboxViews.textContent = photo.views;
   updateLightboxLikes(getLikesCount(photo), false);
   
+  // Render Comments
+  elements.lightboxCommentForm.reset();
+  renderComments(photo);
+  
   // Check Likes State
   const hasLiked = hasUserLiked(photo);
   updateLikeBtnState(hasLiked);
@@ -1113,6 +1118,147 @@ function handleLikeToggle() {
     }
   }
 }
+
+// --- COMMENTS SECTION LOGIC ---
+function escapeHtml(str) {
+  if (!str) return '';
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function renderComments(photo) {
+  const commentsList = elements.lightboxCommentsList;
+  const commentsCount = elements.lightboxCommentsCount;
+  if (!commentsList || !commentsCount) return;
+
+  const comments = photo.comments || [];
+  commentsCount.textContent = comments.length;
+
+  if (comments.length === 0) {
+    commentsList.innerHTML = `<div class="empty-comments-msg" style="text-align: center; color: var(--text-muted); font-size: 0.82rem; padding: 1.5rem 0;">No comments yet. Share a memory!</div>`;
+    return;
+  }
+
+  let html = '';
+  comments.forEach(comment => {
+    const dateObj = new Date(comment.timestamp);
+    const dateStr = dateObj.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+
+    let deleteBtn = '';
+    if (state.isLoggedIn) {
+      deleteBtn = `
+        <button class="btn-delete-comment" onclick="deleteComment('${photo.id}', '${comment.id}')" title="Delete comment">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      `;
+    }
+
+    html += `
+      <div class="comment-item" data-comment-id="${comment.id}">
+        <div class="comment-meta">
+          <div class="comment-header-left">
+            <span class="comment-author"><i class="fa-regular fa-user" style="color: var(--up-gold); font-size: 0.75rem;"></i> ${escapeHtml(comment.author)}</span>
+            <span class="comment-time">${dateStr}</span>
+          </div>
+          ${deleteBtn}
+        </div>
+        <div class="comment-text">${escapeHtml(comment.text)}</div>
+      </div>
+    `;
+  });
+
+  commentsList.innerHTML = html;
+}
+
+function handleCommentSubmit(e) {
+  e.preventDefault();
+  
+  if (!state.selectedPhoto) return;
+  
+  const photo = state.photos.find(p => p.id === state.selectedPhoto.id);
+  if (!photo) return;
+  
+  const author = elements.commentAuthorInput.value.trim();
+  const text = elements.commentTextInput.value.trim();
+  
+  if (!author || !text) {
+    showToast("Please enter your name and a comment.", "error");
+    return;
+  }
+  
+  const newComment = {
+    id: 'comment-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9),
+    author: author,
+    text: text,
+    timestamp: new Date().toISOString()
+  };
+  
+  if (isFirebaseEnabled) {
+    db.collection('photos').doc(photo.id).update({
+      comments: firebase.firestore.FieldValue.arrayUnion(newComment)
+    }).then(() => {
+      elements.commentTextInput.value = '';
+      showToast("Comment added! ❤️", "success");
+    }).catch(err => {
+      console.error("Failed to add comment:", err);
+      showToast("Failed to add comment. Please try again.", "error");
+    });
+  } else {
+    if (!Array.isArray(photo.comments)) {
+      photo.comments = [];
+    }
+    photo.comments.push(newComment);
+    saveDatabase();
+    
+    elements.commentTextInput.value = '';
+    showToast("Comment added! ❤️", "success");
+    renderComments(photo);
+  }
+}
+
+function deleteComment(photoId, commentId) {
+  if (!state.isLoggedIn) {
+    showToast("Unauthorized action.", "error");
+    return;
+  }
+  
+  const confirmDelete = confirm("Are you sure you want to delete this comment?");
+  if (!confirmDelete) return;
+  
+  const photo = state.photos.find(p => p.id === photoId);
+  if (!photo) return;
+  
+  const comment = photo.comments.find(c => c.id === commentId);
+  if (!comment) return;
+  
+  if (isFirebaseEnabled) {
+    db.collection('photos').doc(photoId).update({
+      comments: firebase.firestore.FieldValue.arrayRemove(comment)
+    }).then(() => {
+      showToast("Comment deleted.", "info");
+    }).catch(err => {
+      console.error("Failed to delete comment:", err);
+      showToast("Failed to delete comment.", "error");
+    });
+  } else {
+    photo.comments = photo.comments.filter(c => c.id !== commentId);
+    saveDatabase();
+    showToast("Comment deleted.", "info");
+    renderComments(photo);
+  }
+}
+window.deleteComment = deleteComment;
 
 // --- PHOTO UPLOADING FLOW ---
 // Canvas Resizer to optimize base64 images client-side
