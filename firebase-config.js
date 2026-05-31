@@ -1,9 +1,11 @@
 // Paste your Firebase configuration here from the Firebase Console (Web App settings)
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDVBBwS5mWxWrLDLxgb7OYPXwtc8Ly8yIg",
+  authDomain: "up-katitirok-gallery.firebaseapp.com",
+  projectId: "up-katitirok-gallery",
+  storageBucket: "up-katitirok-gallery.firebasestorage.app",
+  messagingSenderId: "534585627220",
+  appId: "1:534585627220:web:a505989694a646bd43d3c1",
+  measurementId: "G-MSKD2N7FR3"
 };
+
