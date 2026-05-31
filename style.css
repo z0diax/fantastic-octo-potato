@@ -559,6 +559,10 @@ header {
   color: var(--up-gold);
 }
 
+.meta-stat.comments-count i {
+  color: var(--up-green-light);
+}
+
 .upload-badge {
   position: absolute;
   top: 12px;

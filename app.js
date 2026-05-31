@@ -985,6 +985,9 @@ function renderGallery() {
               <span class="meta-stat likes-count">
                 <i class="fa-regular fa-heart"></i> ${getLikesCount(photo)}
               </span>
+              <span class="meta-stat comments-count">
+                <i class="fa-regular fa-comment"></i> ${(photo.comments || []).length}
+              </span>
             </div>
           </div>
         </div>
@@ -1240,6 +1243,7 @@ function handleCommentSubmit(e) {
     elements.commentTextInput.value = '';
     showToast("Comment added! ❤️", "success");
     renderComments(photo);
+    renderGallery();
   }
 }
 
@@ -1272,6 +1276,7 @@ function deleteComment(photoId, commentId) {
     saveDatabase();
     showToast("Comment deleted.", "info");
     renderComments(photo);
+    renderGallery();
   }
 }
 window.deleteComment = deleteComment;
