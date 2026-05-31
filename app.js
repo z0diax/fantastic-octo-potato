@@ -9,6 +9,7 @@ const DEFAULT_PHOTOS = [
     category: 'batch 89',
     likes: [],
     views: 0,
+    comments: [],
     approved: true,
     uploadedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
   },
@@ -19,6 +20,7 @@ const DEFAULT_PHOTOS = [
     category: 'batch 89',
     likes: [],
     views: 0,
+    comments: [],
     approved: true,
     uploadedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString()
   },
@@ -29,6 +31,7 @@ const DEFAULT_PHOTOS = [
     category: 'batch 89',
     likes: [],
     views: 0,
+    comments: [],
     approved: true,
     uploadedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
   },
@@ -39,6 +42,7 @@ const DEFAULT_PHOTOS = [
     category: 'batch 89',
     likes: [],
     views: 0,
+    comments: [],
     approved: true,
     uploadedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
   },
@@ -49,6 +53,7 @@ const DEFAULT_PHOTOS = [
     category: 'batch 89',
     likes: [],
     views: 0,
+    comments: [],
     approved: true,
     uploadedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
   }
@@ -126,6 +131,13 @@ const elements = {
   lightboxViews: document.getElementById('lightbox-views-count'),
   lightboxLikes: document.getElementById('lightbox-likes-count'),
   likeBtn: document.getElementById('like-btn'),
+  
+  // Comments elements
+  lightboxCommentsList: document.getElementById('lightbox-comments-list'),
+  lightboxCommentForm: document.getElementById('lightbox-comment-form'),
+  commentAuthorInput: document.getElementById('comment-author-input'),
+  commentTextInput: document.getElementById('comment-text-input'),
+  lightboxCommentsCount: document.getElementById('lightbox-comments-count'),
   
   // Upload Modal
   uploadModal: document.getElementById('upload-modal'),
@@ -281,6 +293,11 @@ function loadDatabase() {
           db.collection('photos').doc(doc.id).update({ likes: dummyLikes }).catch(e => console.error(e));
           data.likes = dummyLikes;
         }
+        if (!data.comments || !Array.isArray(data.comments)) {
+          console.log(`Initializing missing comments array for photo: ${doc.id}`);
+          db.collection('photos').doc(doc.id).update({ comments: [] }).catch(e => console.error(e));
+          data.comments = [];
+        }
         fbPhotos.push({ id: doc.id, ...data });
       });
       
@@ -345,6 +362,22 @@ function loadDatabase() {
         state.photos = state.photos.filter(p => !oldSeedIds.includes(p.id));
         let modified = state.photos.length !== initialLength;
         
+        // Ensure comments and likes arrays exist for all photos locally
+        state.photos.forEach(p => {
+          if (!p.comments || !Array.isArray(p.comments)) {
+            p.comments = [];
+            modified = true;
+          }
+          if (typeof p.likes === 'number') {
+            const count = p.likes;
+            p.likes = [];
+            for (let i = 0; i < count; i++) {
+              p.likes.push(`migrated-${i}`);
+            }
+            modified = true;
+          }
+        });
+
         DEFAULT_PHOTOS.forEach(photo => {
           const localPhoto = state.photos.find(p => p.id === photo.id);
           if (!localPhoto) {
@@ -472,6 +505,7 @@ function initEventListeners() {
   
   elements.uploadForm.addEventListener('submit', handleUploadSubmit);
   elements.editCaptionForm.addEventListener('submit', handleEditCaptionSubmit);
+  elements.lightboxCommentForm.addEventListener('submit', handleCommentSubmit);
   
   // Admin Interactions
   elements.adminLoginForm.addEventListener('submit', handleAdminLogin);

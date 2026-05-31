@@ -696,6 +696,116 @@ header {
   white-space: pre-wrap;
 }
 
+/* Comments Section inside Lightbox Info Pane */
+.comments-section {
+  margin: 0 0 2rem 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-grow: 1;
+}
+
+.comments-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--up-gold);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.comments-list {
+  max-height: 180px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 6px;
+}
+
+/* Custom Scrollbar for Comments */
+.comments-list::-webkit-scrollbar {
+  width: 4px;
+}
+.comments-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.01);
+}
+.comments-list::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.2);
+  border-radius: 4px;
+}
+.comments-list::-webkit-scrollbar-thumb:hover {
+  background: var(--up-gold);
+}
+
+.comment-item {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 0.7rem 0.9rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+.comment-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.comment-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.comment-author {
+  font-weight: 600;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.comment-time {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.comment-text {
+  color: var(--text-main);
+  word-break: break-word;
+}
+
+/* Administrative Comment Delete Action */
+.btn-delete-comment {
+  background: none;
+  border: none;
+  color: rgba(231, 76, 60, 0.6);
+  cursor: pointer;
+  padding: 2px;
+  font-size: 0.75rem;
+  transition: var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-delete-comment:hover {
+  color: #e74c3c;
+  transform: scale(1.1);
+}
+
 .lightbox-footer {
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   padding-top: 1.5rem;

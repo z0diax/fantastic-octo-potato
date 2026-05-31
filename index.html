@@ -229,6 +229,25 @@
           together once again.
         </div>
 
+        <!-- Comments Section -->
+        <div class="comments-section">
+          <h4 class="comments-title">
+            <i class="fa-regular fa-comments"></i> Memories Shared (<span id="lightbox-comments-count">0</span>)
+          </h4>
+          <div class="comments-list" id="lightbox-comments-list">
+            <!-- Dynamic comments will be injected here by JS -->
+          </div>
+          <form id="lightbox-comment-form" class="comment-form">
+            <div style="display: flex; gap: 8px;">
+              <input type="text" class="form-control" id="comment-author-input" placeholder="Your Name" required style="width: 110px; padding: 0.45rem 0.75rem; font-size: 0.8rem;">
+              <input type="text" class="form-control" id="comment-text-input" placeholder="Share a memory or thought..." required style="flex-grow: 1; padding: 0.45rem 0.75rem; font-size: 0.8rem;">
+              <button type="submit" class="btn btn-accent" style="padding: 0.45rem 0.85rem; font-size: 0.8rem; height: auto;">
+                <i class="fa-solid fa-paper-plane"></i>
+              </button>
+            </div>
+          </form>
+        </div>
+
         <div class="lightbox-footer">
           <div class="lightbox-stats">
             <div class="lightbox-stat-item views">
