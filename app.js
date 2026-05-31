@@ -1036,6 +1036,12 @@ function openLightbox(photoId) {
   elements.lightboxCommentForm.reset();
   renderComments(photo);
   
+  // Prefill commenter name from localStorage
+  const savedName = localStorage.getItem('up_gallery_author_name');
+  if (savedName && elements.commentAuthorInput) {
+    elements.commentAuthorInput.value = savedName;
+  }
+  
   // Check Likes State
   const hasLiked = hasUserLiked(photo);
   updateLikeBtnState(hasLiked);
@@ -1048,10 +1054,10 @@ window.openLightbox = openLightbox; // Make it global for inline onclick call
 function updateLikeBtnState(hasLiked) {
   if (hasLiked) {
     elements.likeBtn.classList.add('liked');
-    elements.likeBtn.innerHTML = `<i class="fa-solid fa-heart"></i> Memory Liked`;
+    elements.likeBtn.innerHTML = `<i class="fa-solid fa-heart"></i>`;
   } else {
     elements.likeBtn.classList.remove('liked');
-    elements.likeBtn.innerHTML = `<i class="fa-regular fa-heart"></i> Like this memory`;
+    elements.likeBtn.innerHTML = `<i class="fa-regular fa-heart"></i>`;
   }
 }
 
@@ -1164,16 +1170,19 @@ function renderComments(photo) {
       `;
     }
 
+    const firstChar = comment.author ? comment.author.charAt(0) : '?';
+
     html += `
       <div class="comment-item" data-comment-id="${comment.id}">
-        <div class="comment-meta">
-          <div class="comment-header-left">
-            <span class="comment-author"><i class="fa-regular fa-user" style="color: var(--up-gold); font-size: 0.75rem;"></i> ${escapeHtml(comment.author)}</span>
+        <div class="comment-avatar">${escapeHtml(firstChar)}</div>
+        <div class="comment-content-wrapper">
+          <div class="comment-meta">
+            <span class="comment-author">${escapeHtml(comment.author)}</span>
             <span class="comment-time">${dateStr}</span>
           </div>
-          ${deleteBtn}
+          <div class="comment-text">${escapeHtml(comment.text)}</div>
         </div>
-        <div class="comment-text">${escapeHtml(comment.text)}</div>
+        ${deleteBtn}
       </div>
     `;
   });
@@ -1203,6 +1212,8 @@ function handleCommentSubmit(e) {
     text: text,
     timestamp: new Date().toISOString()
   };
+  
+  localStorage.setItem('up_gallery_author_name', author);
   
   if (isFirebaseEnabled) {
     db.collection('photos').doc(photo.id).update({

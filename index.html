@@ -237,34 +237,35 @@
           <div class="comments-list" id="lightbox-comments-list">
             <!-- Dynamic comments will be injected here by JS -->
           </div>
-          <form id="lightbox-comment-form" class="comment-form">
-            <div style="display: flex; gap: 8px;">
-              <input type="text" class="form-control" id="comment-author-input" placeholder="Your Name" required style="width: 110px; padding: 0.45rem 0.75rem; font-size: 0.8rem;">
-              <input type="text" class="form-control" id="comment-text-input" placeholder="Share a memory or thought..." required style="flex-grow: 1; padding: 0.45rem 0.75rem; font-size: 0.8rem;">
-              <button type="submit" class="btn btn-accent" style="padding: 0.45rem 0.85rem; font-size: 0.8rem; height: auto;">
+        </div>
+
+        <!-- Modern Footer with Actions & input form -->
+        <div class="lightbox-footer">
+          <div class="modern-action-bar">
+            <div class="action-buttons-left">
+              <button class="icon-action-btn heart-btn" id="like-btn" title="Like this memory">
+                <i class="fa-regular fa-heart"></i>
+              </button>
+              <button class="icon-action-btn comment-btn" onclick="document.getElementById('comment-text-input').focus()" title="Write a comment">
+                <i class="fa-regular fa-comment"></i>
+              </button>
+            </div>
+            <div class="modern-stats-text">
+              <span id="lightbox-views-count">0</span> views &bull; <span id="lightbox-likes-count">0</span> likes
+            </div>
+          </div>
+
+          <form id="lightbox-comment-form" class="modern-comment-card">
+            <div class="modern-input-row-top">
+              <input type="text" class="modern-comment-name-input" id="comment-author-input" placeholder="Your Name" required maxlength="25">
+            </div>
+            <div class="modern-input-row-bottom">
+              <input type="text" class="modern-comment-text-input" id="comment-text-input" placeholder="Add a comment..." required maxlength="300">
+              <button type="submit" class="modern-send-btn" title="Post comment">
                 <i class="fa-solid fa-paper-plane"></i>
               </button>
             </div>
           </form>
-        </div>
-
-        <div class="lightbox-footer">
-          <div class="lightbox-stats">
-            <div class="lightbox-stat-item views">
-              <i class="fa-regular fa-eye"></i>
-              <span id="lightbox-views-count">0</span> views
-            </div>
-            <div class="lightbox-stat-item likes">
-              <i class="fa-regular fa-heart"></i>
-              <span id="lightbox-likes-count">0</span> likes
-            </div>
-          </div>
-
-          <div class="social-actions-row">
-            <button class="like-action-btn" id="like-btn">
-              <i class="fa-regular fa-heart"></i> Like this memory
-            </button>
-          </div>
         </div>
       </div>
     </div>
