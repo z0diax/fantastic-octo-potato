@@ -257,10 +257,34 @@ function initApp() {
   initEventListeners();
   startCarouselAutoPlay();
 
-  // Check session login state
-  if (sessionStorage.getItem('admin_logged') === 'true') {
-    state.isLoggedIn = true;
-    showAdminDashboard();
+  // Listen to auth state changes when Firebase is active
+  if (isFirebaseEnabled) {
+    firebase.auth().onAuthStateChanged((user) => {
+      if (user) {
+        state.isLoggedIn = true;
+        sessionStorage.setItem('admin_logged', 'true');
+        // Sync UI for admin elements if admin view is currently open
+        if (elements.adminView.classList.contains('active')) {
+          showAdminDashboard();
+        }
+        renderGallery();
+        updateAdminStats();
+        renderAdminQueue();
+      } else {
+        state.isLoggedIn = false;
+        sessionStorage.removeItem('admin_logged');
+        if (elements.adminView.classList.contains('active')) {
+          showAdminLogin();
+        }
+        renderGallery();
+      }
+    });
+  } else {
+    // Check session login state in Local Demo Mode
+    if (sessionStorage.getItem('admin_logged') === 'true') {
+      state.isLoggedIn = true;
+      showAdminDashboard();
+    }
   }
 }
 
@@ -1439,22 +1463,51 @@ function handleAdminLogin(e) {
   const username = elements.adminUsername.value.trim();
   const password = elements.adminPassword.value.trim();
 
-  if (username === 'admin' && password === 'admin') {
-    state.isLoggedIn = true;
-    sessionStorage.setItem('admin_logged', 'true');
-    showAdminDashboard();
-    showToast("Welcome back, Administrator.", "success");
+  if (isFirebaseEnabled) {
+    // In Firebase Sync Mode, Username field acts as Email
+    showToast("Logging in securely...", "info");
+    firebase.auth().signInWithEmailAndPassword(username, password)
+      .then((userCredential) => {
+        showToast("Welcome back, Administrator.", "success");
+        // Dashboard transition is handled by onAuthStateChanged listener
+      })
+      .catch((err) => {
+        console.error("Auth failed:", err);
+        showToast("Invalid email or password.", "error");
+        elements.adminPassword.value = '';
+      });
   } else {
-    showToast("Invalid credentials. Try again.", "error");
-    elements.adminPassword.value = '';
+    // Local Demo Mode fallback
+    if (username === 'admin' && password === 'oncue') {
+      state.isLoggedIn = true;
+      sessionStorage.setItem('admin_logged', 'true');
+      showAdminDashboard();
+      showToast("Welcome back, Administrator (Local Mode).", "success");
+      renderGallery();
+    } else {
+      showToast("Invalid credentials. Try again.", "error");
+      elements.adminPassword.value = '';
+    }
   }
 }
 
 function handleAdminLogout() {
-  state.isLoggedIn = false;
-  sessionStorage.removeItem('admin_logged');
-  showAdminLogin();
-  showToast("Logged out successfully.", "info");
+  if (isFirebaseEnabled) {
+    firebase.auth().signOut()
+      .then(() => {
+        showToast("Logged out successfully.", "info");
+      })
+      .catch((err) => {
+        console.error("Logout failed:", err);
+        showToast("Failed to logout securely.", "error");
+      });
+  } else {
+    state.isLoggedIn = false;
+    sessionStorage.removeItem('admin_logged');
+    showAdminLogin();
+    showToast("Logged out successfully.", "info");
+    renderGallery();
+  }
 }
 
 function updateAdminStats() {
